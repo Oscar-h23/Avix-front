@@ -71,6 +71,7 @@ export class HistorialComponent implements OnInit {
 
   cambiarTurno(): void {
     this.franja = null;
+    this.cargar();
   }
 
   cargar(): void {

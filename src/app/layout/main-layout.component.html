@@ -30,6 +30,19 @@
         </span>
         <span>Historial</span>
       </a>
+
+      @if (auth.usuario()?.rol === 'SUPERVISOR') {
+        <a
+          routerLink="/configuracion-vias"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
+        >
+          <span class="icon">
+            <svg viewBox="0 0 24 24"><path d="M4 5h10v2H4V5Zm0 6h16v2H4v-2Zm0 6h10v2H4v-2Zm13-13h3v4h-3V4Zm-3 12h3v4h-3v-4Z"/></svg>
+          </span>
+          <span>Vías AVIX</span>
+        </a>
+      }
     </nav>
 
     <div class="sidebar-footer">

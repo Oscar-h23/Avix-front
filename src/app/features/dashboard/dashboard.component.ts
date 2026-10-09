@@ -1,26 +1,38 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AviRegistro } from '../../core/models/avi.models';
 import { AviApiService } from '../../core/services/avi-api.service';
 import {
   contextoOperativoActual,
   dateTimeLabelFromIso,
+  franjasPorTurno,
   TurnoFiltro,
   TURNOS,
   ventanaOperativa
 } from '../../core/utils/turnos';
 
-interface BarItem {
+interface HourItem {
   label: string;
-  value: number;
+  total: number;
+  fugas: number;
+  derivados: number;
+  width: number;
+}
+
+interface ViaItem {
+  via: number;
+  total: number;
+  fugas: number;
+  derivados: number;
   width: number;
 }
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
@@ -33,14 +45,26 @@ export class DashboardComponent implements OnInit {
   registros: AviRegistro[] = [];
   loading = false;
   error = '';
+  ventanaDescripcion = '';
+  ultimaActualizacion = '';
 
   total = 0;
   fugas = 0;
   derivados = 0;
   placasUnicas = 0;
+  operadoresActivos = 0;
 
-  porVia: BarItem[] = [];
-  porHora: BarItem[] = [];
+  porcentajeFugas = 0;
+  porcentajeDerivados = 0;
+  promedioPorHora = 0;
+
+  viaLider = '—';
+  viaLiderTotal = 0;
+  horaPico = '—';
+  horaPicoTotal = 0;
+
+  porVia: ViaItem[] = [];
+  porHora: HourItem[] = [];
 
   constructor(private readonly api: AviApiService) {}
 
@@ -48,8 +72,34 @@ export class DashboardComponent implements OnInit {
     this.cargar();
   }
 
+  get esTurnoActual(): boolean {
+    const actual = contextoOperativoActual();
+    return actual.fecha === this.fecha && actual.turno === this.turno;
+  }
+
+  get donutBackground(): string {
+    if (!this.total) {
+      return 'conic-gradient(#e2e8f0 0 100%)';
+    }
+
+    return `conic-gradient(
+      #dc2626 0 ${this.porcentajeFugas}%,
+      #2563eb ${this.porcentajeFugas}% 100%
+    )`;
+  }
+
+  seleccionarTurno(turno: TurnoFiltro): void {
+    if (this.turno === turno || turno === 'TODOS') {
+      return;
+    }
+
+    this.turno = turno;
+    this.cargar();
+  }
+
   cargar(): void {
     const ventana = ventanaOperativa(this.fecha, this.turno);
+    this.ventanaDescripcion = ventana.descripcion;
     this.loading = true;
     this.error = '';
 
@@ -65,6 +115,13 @@ export class DashboardComponent implements OnInit {
             new Date(a.fechaHoraEvento).getTime()
         );
         this.recalcular();
+        this.ultimaActualizacion = new Intl.DateTimeFormat('es-PE', {
+          timeZone: 'America/Lima',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hourCycle: 'h23'
+        }).format(new Date());
       },
       error: (error) => {
         this.loading = false;
@@ -81,44 +138,148 @@ export class DashboardComponent implements OnInit {
 
   private recalcular(): void {
     this.total = this.registros.length;
-    this.fugas = this.registros.filter((item) => item.accion === 'FUGA').length;
-    this.derivados = this.registros.filter((item) => item.accion === 'DERIVADO').length;
-    this.placasUnicas = new Set(this.registros.map((item) => item.placa)).size;
+    this.fugas = this.registros.filter(
+      (item) => item.accion === 'FUGA'
+    ).length;
+    this.derivados = this.registros.filter(
+      (item) => item.accion === 'DERIVADO'
+    ).length;
+    this.placasUnicas = new Set(
+      this.registros.map((item) => item.placa)
+    ).size;
+    this.operadoresActivos = new Set(
+      this.registros.map((item) => item.usuarioId)
+    ).size;
 
-    const vias = new Map<number, number>();
-    const horas = new Map<string, number>();
+    this.porcentajeFugas = this.total
+      ? Math.round((this.fugas / this.total) * 100)
+      : 0;
+    this.porcentajeDerivados = this.total
+      ? 100 - this.porcentajeFugas
+      : 0;
+
+    const franjas = franjasPorTurno(this.turno);
+    this.promedioPorHora = franjas.length
+      ? Number((this.total / franjas.length).toFixed(1))
+      : 0;
+
+    const vias = new Map<
+      number,
+      { total: number; fugas: number; derivados: number }
+    >();
 
     for (const item of this.registros) {
-      vias.set(item.via, (vias.get(item.via) ?? 0) + 1);
+      const actual = vias.get(item.via) ?? {
+        total: 0,
+        fugas: 0,
+        derivados: 0
+      };
 
-      const hour = new Intl.DateTimeFormat('es-PE', {
-        timeZone: 'America/Lima',
-        hour: '2-digit',
-        hourCycle: 'h23'
-      }).format(new Date(item.fechaHoraEvento));
+      actual.total++;
 
-      horas.set(hour, (horas.get(hour) ?? 0) + 1);
+      if (item.accion === 'FUGA') {
+        actual.fugas++;
+      } else {
+        actual.derivados++;
+      }
+
+      vias.set(item.via, actual);
     }
 
-    this.porVia = this.toBars(
-      [...vias.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .map(([via, value]) => [`Vía ${via}`, value])
+    const viaRows = [...vias.entries()]
+      .sort((a, b) => b[1].total - a[1].total);
+
+    const maxVia = Math.max(
+      1,
+      ...viaRows.map(([, data]) => data.total)
     );
 
-    this.porHora = this.toBars(
-      [...horas.entries()]
-        .sort((a, b) => Number(a[0]) - Number(b[0]))
-        .map(([hour, value]) => [`${hour}:00`, value])
+    this.porVia = viaRows.map(([via, data]) => ({
+      via,
+      total: data.total,
+      fugas: data.fugas,
+      derivados: data.derivados,
+      width: Math.max(5, (data.total / maxVia) * 100)
+    }));
+
+    const viaTop = this.porVia[0];
+    this.viaLider = viaTop ? `Vía ${viaTop.via}` : '—';
+    this.viaLiderTotal = viaTop?.total ?? 0;
+
+    const byHour = new Map<
+      number,
+      { total: number; fugas: number; derivados: number }
+    >();
+
+    for (const item of this.registros) {
+      const hour = this.horaLima(item.fechaHoraEvento);
+      const actual = byHour.get(hour) ?? {
+        total: 0,
+        fugas: 0,
+        derivados: 0
+      };
+
+      actual.total++;
+
+      if (item.accion === 'FUGA') {
+        actual.fugas++;
+      } else {
+        actual.derivados++;
+      }
+
+      byHour.set(hour, actual);
+    }
+
+    const rawHours = franjas.map((franja) => {
+      const hour = franja.value % 24;
+      const data = byHour.get(hour) ?? {
+        total: 0,
+        fugas: 0,
+        derivados: 0
+      };
+
+      return {
+        label: franja.label,
+        total: data.total,
+        fugas: data.fugas,
+        derivados: data.derivados
+      };
+    });
+
+    const maxHour = Math.max(
+      1,
+      ...rawHours.map((item) => item.total)
     );
+
+    this.porHora = rawHours.map((item) => ({
+      ...item,
+      width: item.total
+        ? Math.max(5, (item.total / maxHour) * 100)
+        : 0
+    }));
+
+    const peak = this.porHora.reduce<HourItem | null>(
+      (best, item) =>
+        !best || item.total > best.total
+          ? item
+          : best,
+      null
+    );
+
+    this.horaPico =
+      peak && peak.total > 0
+        ? peak.label
+        : '—';
+    this.horaPicoTotal = peak?.total ?? 0;
   }
 
-  private toBars(entries: Array<[string, number]>): BarItem[] {
-    const max = Math.max(1, ...entries.map((item) => item[1]));
-    return entries.map(([label, value]) => ({
-      label,
-      value,
-      width: Math.max(6, (value / max) * 100)
-    }));
+  private horaLima(iso: string): number {
+    const hour = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Lima',
+      hour: '2-digit',
+      hourCycle: 'h23'
+    }).format(new Date(iso));
+
+    return Number(hour);
   }
 }

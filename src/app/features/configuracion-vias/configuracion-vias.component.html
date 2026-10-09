@@ -1,0 +1,67 @@
+<section class="page">
+  <div class="page-heading">
+    <div>
+      <h1>Vías visibles en AVIX</h1>
+      <p>
+        Configuración global por plaza. Los móviles AVIX solo mostrarán las vías habilitadas aquí.
+      </p>
+    </div>
+  </div>
+
+  <section class="config-card card">
+    <div class="toolbar">
+      <div class="field">
+        <label>Plaza</label>
+        <select [(ngModel)]="plazaId" (change)="cargarVias()">
+          @for (plaza of plazas; track plaza.id) {
+            <option [ngValue]="plaza.id">
+              {{ plaza.codigo }}{{ plaza.descripcion ? ' · ' + plaza.descripcion : '' }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <div class="summary">
+        <span>Visibles en AVIX</span>
+        <strong>{{ visibles }} / {{ vias.length }}</strong>
+      </div>
+    </div>
+
+    @if (error) {
+      <div class="error-box">{{ error }}</div>
+    }
+
+    @if (message) {
+      <div class="success-box">{{ message }}</div>
+    }
+
+    @if (loading) {
+      <div class="loading-line">Cargando configuración...</div>
+    } @else if (!vias.length) {
+      <div class="empty-state">
+        No hay vías activas registradas para esta plaza.
+      </div>
+    } @else {
+      <div class="lane-list">
+        @for (via of vias; track via.id) {
+          <article class="lane-row" [class.off]="!via.visible">
+            <div class="lane-copy">
+              <span class="lane-number">Vía {{ via.numero }}</span>
+              <small>{{ via.nombre || 'Sin nombre adicional' }}</small>
+            </div>
+
+            <label class="switch">
+              <input
+                type="checkbox"
+                [checked]="via.visible"
+                [disabled]="savingId !== null"
+                (change)="cambiarVisibilidad(via, $any($event.target).checked)"
+              >
+              <span></span>
+            </label>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</section>

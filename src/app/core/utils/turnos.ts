@@ -93,7 +93,7 @@ export function contextoOperativoActual(): {
     hourCycle: 'h23'
   }).formatToParts(new Date());
 
-  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+  const part = (type: string): string =>
     parts.find((item) => item.type === type)?.value ?? '';
 
   const date = `${part('year')}-${part('month')}-${part('day')}`;
@@ -141,7 +141,7 @@ export function dateTimeLabelFromIso(iso: string): string {
   }).format(date);
 }
 
-private function isoOperativo(fecha: string, horaOperativa: number): string {
+function isoOperativo(fecha: string, horaOperativa: number): string {
   const dayOffset = Math.floor(horaOperativa / 24);
   const hour = horaOperativa % 24;
   const date = addDays(fecha, dayOffset);

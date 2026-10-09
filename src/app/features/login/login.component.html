@@ -1,0 +1,72 @@
+<main class="login-page">
+  <section class="visual-panel">
+    <div class="visual-content">
+      <div class="brand-row">
+        <img src="avix-logo.svg" alt="AVIX">
+        <div>
+          <strong>AVIX</strong>
+          <span>Control operativo inteligente</span>
+        </div>
+      </div>
+
+      <div class="hero-copy">
+        <span class="eyebrow">SIGO · Operaciones</span>
+        <h1>Visibilidad inmediata de fugas y derivados.</h1>
+        <p>
+          Consulta el comportamiento operativo por turno, vía, hora y placa
+          desde un único panel.
+        </p>
+      </div>
+
+      <div class="shift-strip">
+        <div><b>A</b><span>06–14</span></div>
+        <div><b>B</b><span>14–22</span></div>
+        <div><b>C</b><span>22–06</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="form-panel">
+    <form class="login-card" (ngSubmit)="ingresar()">
+      <div class="mobile-brand">
+        <img src="avix-logo.svg" alt="AVIX">
+        <strong>AVIX</strong>
+      </div>
+
+      <span class="form-kicker">Acceso operativo</span>
+      <h2>Iniciar sesión</h2>
+      <p class="form-description">
+        Ingresa tu código de trabajador para acceder al dashboard AVIX.
+      </p>
+
+      <div class="field">
+        <label for="codigo">Código de trabajador</label>
+        <input
+          id="codigo"
+          name="codigo"
+          [(ngModel)]="codigo"
+          inputmode="numeric"
+          autocomplete="username"
+          placeholder="Ej. 2396"
+          [disabled]="loading"
+        >
+      </div>
+
+      @if (error) {
+        <div class="error-box">{{ error }}</div>
+      }
+
+      <button
+        type="submit"
+        class="login-button"
+        [disabled]="loading"
+      >
+        {{ loading ? 'Validando...' : 'Ingresar a AVIX' }}
+      </button>
+
+      <small>
+        La sesión se valida con SIGO-BACK.
+      </small>
+    </form>
+  </section>
+</main>

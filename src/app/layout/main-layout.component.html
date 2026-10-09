@@ -1,0 +1,77 @@
+<div class="shell">
+  <aside [class.open]="sidebarOpen">
+    <div class="brand">
+      <img src="avix-logo.svg" alt="AVIX">
+      <div>
+        <strong>AVIX</strong>
+        <span>Control Operativo</span>
+      </div>
+    </div>
+
+    <nav>
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="active"
+        (click)="closeSidebar()"
+      >
+        <span class="icon">
+          <svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z"/></svg>
+        </span>
+        <span>Dashboard</span>
+      </a>
+
+      <a
+        routerLink="/historial"
+        routerLinkActive="active"
+        (click)="closeSidebar()"
+      >
+        <span class="icon">
+          <svg viewBox="0 0 24 24"><path d="M5 3h14v18H5V3Zm2 2v14h10V5H7Zm2 3h6v2H9V8Zm0 4h6v2H9v-2Zm0 4h4v2H9v-2Z"/></svg>
+        </span>
+        <span>Historial</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="operator">
+        <span>{{ auth.usuario()?.nombre || 'Usuario' }}</span>
+        <small>#{{ auth.usuario()?.codigo }}</small>
+      </div>
+      <button type="button" (click)="logout()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  @if (sidebarOpen) {
+    <button
+      class="overlay"
+      type="button"
+      aria-label="Cerrar menú"
+      (click)="closeSidebar()"
+    ></button>
+  }
+
+  <section class="content">
+    <header>
+      <button class="menu" type="button" (click)="toggleSidebar()">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z"/></svg>
+      </button>
+
+      <div class="identity">
+        <b>{{ auth.usuario()?.nombre || 'Usuario AVIX' }}</b>
+        <span>{{ auth.usuario()?.rol || 'OPERADOR' }}</span>
+      </div>
+
+      <div class="plaza">
+        <span class="plaza-icon">P</span>
+        <div>
+          <small>Plaza</small>
+          <strong>{{ auth.usuario()?.plaza || 'Sin asignar' }}</strong>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <router-outlet />
+    </main>
+  </section>
+</div>

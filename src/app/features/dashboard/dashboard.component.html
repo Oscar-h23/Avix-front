@@ -1,145 +1,362 @@
-<section class="page">
-  <div class="page-heading">
-    <div>
+<section class="page dashboard-page">
+  <section class="dashboard-hero">
+    <div class="hero-copy">
+      <div class="hero-topline">
+        <span
+          class="status-pill"
+          [class.live]="esTurnoActual"
+        >
+          <span class="status-dot"></span>
+          {{ esTurnoActual ? 'Turno en curso' : 'Consulta histórica' }}
+        </span>
+
+        <span class="window-label">
+          {{ ventanaDescripcion }}
+        </span>
+      </div>
+
       <h1>Dashboard AVIX</h1>
-      <p>Resumen operativo de fugas y derivados por turno.</p>
+      <p>
+        Monitoreo de fugas, derivados y concentración operativa
+        durante el turno seleccionado.
+      </p>
     </div>
 
-    <div class="dashboard-filters card">
-      <div class="field">
+    <div class="hero-filters">
+      <div class="field date-field">
         <label>Fecha operativa</label>
-        <input type="date" [(ngModel)]="fecha">
+        <input
+          type="date"
+          [(ngModel)]="fecha"
+          (change)="cargar()"
+        >
       </div>
 
-      <div class="field">
-        <label>Turno</label>
-        <select [(ngModel)]="turno">
+      <div class="shift-control">
+        <span>Turno</span>
+
+        <div class="shift-buttons">
           @for (item of turnos; track item.value) {
-            <option [ngValue]="item.value">
-              {{ item.label }} · {{ item.horario }}
-            </option>
+            <button
+              type="button"
+              [class.active]="turno === item.value"
+              (click)="seleccionarTurno(item.value)"
+            >
+              <b>{{ item.value }}</b>
+              <small>{{ item.horario }}</small>
+            </button>
           }
-        </select>
+        </div>
       </div>
 
-      <button class="primary-button" type="button" (click)="cargar()">
-        Actualizar
+      <button
+        class="refresh-button"
+        type="button"
+        [disabled]="loading"
+        (click)="cargar()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h8V3l-3.3 3.3Z"/>
+        </svg>
+        <span>{{ loading ? 'Actualizando...' : 'Actualizar' }}</span>
       </button>
     </div>
-  </div>
+  </section>
 
   @if (error) {
     <div class="error-box dashboard-error">{{ error }}</div>
   }
 
-  <div class="stats-grid">
-    <article class="stat-card card">
-      <span>Total de eventos</span>
-      <strong>{{ total }}</strong>
-      <small>Registros del turno</small>
+  <section class="kpi-grid">
+    <article class="kpi-card total card">
+      <div class="kpi-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 3h16v18H4V3Zm3 4v2h10V7H7Zm0 4v2h10v-2H7Zm0 4v2h7v-2H7Z"/>
+        </svg>
+      </div>
+      <div class="kpi-copy">
+        <span>Total de eventos</span>
+        <strong>{{ total }}</strong>
+        <small>
+          {{ promedioPorHora | number:'1.0-1' }} por hora ·
+          {{ operadoresActivos }} operador(es)
+        </small>
+      </div>
     </article>
 
-    <article class="stat-card card danger">
-      <span>Fugas</span>
-      <strong>{{ fugas }}</strong>
-      <small>{{ total ? ((fugas / total) * 100 | number:'1.0-0') : 0 }}% del total</small>
+    <article class="kpi-card fuga card">
+      <div class="kpi-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2 3 21h18L12 2Zm-1 7h2v6h-2V9Zm0 8h2v2h-2v-2Z"/>
+        </svg>
+      </div>
+      <div class="kpi-copy">
+        <span>Fugas</span>
+        <strong>{{ fugas }}</strong>
+        <small>{{ porcentajeFugas }}% del turno</small>
+      </div>
     </article>
 
-    <article class="stat-card card blue">
-      <span>Derivados</span>
-      <strong>{{ derivados }}</strong>
-      <small>{{ total ? ((derivados / total) * 100 | number:'1.0-0') : 0 }}% del total</small>
+    <article class="kpi-card derivado card">
+      <div class="kpi-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M5 4h8v2H7v5h6v2H7v5h6v2H5V4Zm10 5 4 3-4 3V9Z"/>
+        </svg>
+      </div>
+      <div class="kpi-copy">
+        <span>Derivados</span>
+        <strong>{{ derivados }}</strong>
+        <small>{{ porcentajeDerivados }}% del turno</small>
+      </div>
     </article>
 
-    <article class="stat-card card">
-      <span>Placas únicas</span>
-      <strong>{{ placasUnicas }}</strong>
-      <small>Vehículos identificados</small>
+    <article class="kpi-card card">
+      <div class="kpi-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M5 5h14v14H5V5Zm2 3v8h10V8H7Zm1 1h3v2H8V9Zm5 0h3v2h-3V9Zm-5 4h8v2H8v-2Z"/>
+        </svg>
+      </div>
+      <div class="kpi-copy">
+        <span>Placas únicas</span>
+        <strong>{{ placasUnicas }}</strong>
+        <small>Vehículos identificados</small>
+      </div>
     </article>
-  </div>
 
-  @if (loading) {
-    <div class="loading-line">Cargando datos desde SIGO...</div>
-  }
+    <article class="kpi-card card">
+      <div class="kpi-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 18h16v2H4v-2Zm1-3 4-4 3 3 6-7 1.5 1.3-7.4 8.7-3.1-3.1L6.4 16.4 5 15Z"/>
+        </svg>
+      </div>
+      <div class="kpi-copy">
+        <span>Vía más activa</span>
+        <strong class="compact">{{ viaLider }}</strong>
+        <small>{{ viaLiderTotal }} evento(s)</small>
+      </div>
+    </article>
 
-  <div class="dashboard-grid">
-    <article class="chart-card card">
-      <div class="card-title">
+    <article class="kpi-card card">
+      <div class="kpi-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 5v5.6l3.4 2-1 1.7L11 13.7V7h2Z"/>
+        </svg>
+      </div>
+      <div class="kpi-copy">
+        <span>Hora pico</span>
+        <strong class="compact">{{ horaPico }}</strong>
+        <small>{{ horaPicoTotal }} evento(s)</small>
+      </div>
+    </article>
+  </section>
+
+  <section class="insights-grid">
+    <article class="action-card card">
+      <div class="section-heading">
         <div>
-          <h2>Eventos por vía</h2>
-          <p>Concentración de registros en el turno seleccionado.</p>
+          <span class="section-kicker">Composición</span>
+          <h2>Distribución por acción</h2>
+          <p>Proporción de fugas y derivados dentro del turno.</p>
         </div>
+      </div>
+
+      <div class="action-content">
+        <div
+          class="donut"
+          [style.background]="donutBackground"
+        >
+          <div class="donut-center">
+            <strong>{{ total }}</strong>
+            <span>eventos</span>
+          </div>
+        </div>
+
+        <div class="action-legend">
+          <div class="legend-row">
+            <span class="legend-dot fuga"></span>
+            <div>
+              <b>FUGA</b>
+              <small>{{ fugas }} registros</small>
+            </div>
+            <strong>{{ porcentajeFugas }}%</strong>
+          </div>
+
+          <div class="legend-row">
+            <span class="legend-dot derivado"></span>
+            <div>
+              <b>DERIVADO</b>
+              <small>{{ derivados }} registros</small>
+            </div>
+            <strong>{{ porcentajeDerivados }}%</strong>
+          </div>
+
+          <div class="action-divider"></div>
+
+          <div class="mini-summary">
+            <span>Promedio por hora</span>
+            <b>{{ promedioPorHora | number:'1.0-1' }}</b>
+          </div>
+
+          <div class="mini-summary">
+            <span>Operadores con actividad</span>
+            <b>{{ operadoresActivos }}</b>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="via-card card">
+      <div class="section-heading">
+        <div>
+          <span class="section-kicker">Concentración</span>
+          <h2>Vías con más eventos</h2>
+          <p>Ranking según cantidad de registros del turno.</p>
+        </div>
+
+        <span class="top-label">
+          {{ viaLiderTotal ? viaLider : 'Sin datos' }}
+        </span>
       </div>
 
       @if (porVia.length) {
-        <div class="bar-list">
-          @for (item of porVia; track item.label) {
-            <div class="bar-row">
-              <span>{{ item.label }}</span>
-              <div class="bar-track">
-                <div class="bar-fill" [style.width.%]="item.width"></div>
+        <div class="via-ranking">
+          @for (item of porVia.slice(0, 6); track item.via; let index = $index) {
+            <div class="via-row">
+              <span class="rank">{{ index + 1 }}</span>
+
+              <div class="via-data">
+                <div class="via-line">
+                  <b>Vía {{ item.via }}</b>
+                  <span>{{ item.total }} evento(s)</span>
+                </div>
+
+                <div class="via-track">
+                  <div
+                    class="via-fill"
+                    [style.width.%]="item.width"
+                  ></div>
+                </div>
+
+                <div class="via-breakdown">
+                  <span>{{ item.fugas }} fuga(s)</span>
+                  <span>{{ item.derivados }} derivado(s)</span>
+                </div>
               </div>
-              <b>{{ item.value }}</b>
             </div>
           }
         </div>
       } @else if (!loading) {
-        <div class="empty">No hay eventos para mostrar.</div>
+        <div class="empty-state">
+          No hay eventos para generar el ranking.
+        </div>
       }
     </article>
+  </section>
 
-    <article class="chart-card card">
-      <div class="card-title">
-        <div>
-          <h2>Eventos por hora</h2>
-          <p>Distribución horaria del turno.</p>
-        </div>
+  <article class="hour-card card">
+    <div class="section-heading hour-heading">
+      <div>
+        <span class="section-kicker">Ritmo operativo</span>
+        <h2>Actividad por hora</h2>
+        <p>
+          Se muestran todas las franjas del turno, incluso las que
+          no registran eventos.
+        </p>
       </div>
 
-      @if (porHora.length) {
-        <div class="bar-list">
-          @for (item of porHora; track item.label) {
-            <div class="bar-row">
-              <span>{{ item.label }}</span>
-              <div class="bar-track">
-                <div class="bar-fill secondary" [style.width.%]="item.width"></div>
-              </div>
-              <b>{{ item.value }}</b>
-            </div>
-          }
+      @if (horaPicoTotal) {
+        <div class="peak-chip">
+          <span>Mayor actividad</span>
+          <b>{{ horaPico }}</b>
         </div>
-      } @else if (!loading) {
-        <div class="empty">No hay eventos para mostrar.</div>
       }
-    </article>
-  </div>
+    </div>
+
+    <div class="hour-grid">
+      @for (item of porHora; track item.label) {
+        <div
+          class="hour-column"
+          [class.empty-hour]="item.total === 0"
+        >
+          <div class="hour-value">
+            <strong>{{ item.total }}</strong>
+            <span>evento(s)</span>
+          </div>
+
+          <div class="hour-track">
+            <div
+              class="hour-fill"
+              [style.height.%]="item.width"
+            ></div>
+          </div>
+
+          <div class="hour-label">
+            <b>{{ item.label.split(' – ')[0] }}</b>
+            <small>{{ item.label.split(' – ')[1] }}</small>
+          </div>
+
+          <div class="hour-breakdown">
+            <span class="fuga">{{ item.fugas }}F</span>
+            <span class="derivado">{{ item.derivados }}D</span>
+          </div>
+        </div>
+      }
+    </div>
+  </article>
 
   <article class="recent-card card">
-    <div class="card-title">
+    <div class="section-heading recent-heading">
       <div>
+        <span class="section-kicker">Actividad reciente</span>
         <h2>Últimos registros</h2>
-        <p>Actividad más reciente del turno.</p>
+        <p>Eventos más recientes del turno seleccionado.</p>
       </div>
-      <a href="/historial">Ver historial</a>
+
+      <div class="recent-actions">
+        @if (ultimaActualizacion) {
+          <span>
+            Actualizado {{ ultimaActualizacion }}
+          </span>
+        }
+
+        <a routerLink="/historial">
+          Ver historial
+          <svg viewBox="0 0 24 24">
+            <path d="m9 6 6 6-6 6"/>
+          </svg>
+        </a>
+      </div>
     </div>
 
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Hora</th>
+            <th>Fecha / hora</th>
             <th>Placa</th>
             <th>Vía</th>
             <th>Acción</th>
+            <th>Plaza</th>
             <th>Trabajador</th>
           </tr>
         </thead>
+
         <tbody>
-          @for (item of registros.slice(0, 7); track item.id) {
+          @for (item of registros.slice(0, 8); track item.id) {
             <tr>
-              <td>{{ fechaEvento(item.fechaHoraEvento) }}</td>
-              <td><b>{{ item.placa }}</b></td>
-              <td>Vía {{ item.via }}</td>
+              <td class="date-cell">
+                {{ fechaEvento(item.fechaHoraEvento) }}
+              </td>
+              <td>
+                <span class="plate-badge">
+                  {{ item.placa }}
+                </span>
+              </td>
+              <td>
+                <span class="via-badge">
+                  Vía {{ item.via }}
+                </span>
+              </td>
               <td>
                 <span
                   class="action-badge"
@@ -148,8 +365,22 @@
                   {{ item.accion }}
                 </span>
               </td>
-              <td>{{ item.usuarioNombre }}</td>
+              <td>{{ item.plazaCodigo }}</td>
+              <td>
+                <div class="worker-cell">
+                  <b>{{ item.usuarioNombre }}</b>
+                  <small>#{{ item.usuarioCodigo }}</small>
+                </div>
+              </td>
             </tr>
+          } @empty {
+            @if (!loading) {
+              <tr>
+                <td colspan="6" class="empty-table">
+                  No hay registros en este turno.
+                </td>
+              </tr>
+            }
           }
         </tbody>
       </table>

@@ -2,8 +2,10 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
+  AviPlazaConfig,
   AviRegistro,
   AviRegistroUpdate,
+  AviViaConfig,
   RegistroQuery
 } from '../models/avi.models';
 
@@ -38,5 +40,25 @@ export class AviApiService {
     body: AviRegistroUpdate
   ): Observable<AviRegistro> {
     return this.http.put<AviRegistro>(`/api/avi/registros/${id}`, body);
+  }
+
+  listarPlazasConfiguracion(): Observable<AviPlazaConfig[]> {
+    return this.http.get<AviPlazaConfig[]>('/api/avi/admin/plazas');
+  }
+
+  listarViasConfiguracion(plazaId: number): Observable<AviViaConfig[]> {
+    const params = new HttpParams().set('plazaId', plazaId);
+    return this.http.get<AviViaConfig[]>('/api/avi/admin/vias', { params });
+  }
+
+  actualizarVisibilidadVia(
+    plazaId: number,
+    viaId: number,
+    visible: boolean
+  ): Observable<AviViaConfig> {
+    return this.http.put<AviViaConfig>(
+      `/api/avi/admin/vias/${viaId}`,
+      { plazaId, visible }
+    );
   }
 }

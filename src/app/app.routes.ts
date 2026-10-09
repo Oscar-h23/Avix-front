@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+import { authGuard, supervisorGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -22,6 +22,14 @@ export const routes: Routes = [
         path: 'historial',
         loadComponent: () =>
           import('./features/historial/historial.component').then((m) => m.HistorialComponent)
+      },
+      {
+        path: 'configuracion-vias',
+        canActivate: [supervisorGuard],
+        loadComponent: () =>
+          import('./features/configuracion-vias/configuracion-vias.component').then(
+            (m) => m.ConfiguracionViasComponent
+          )
       },
       {
         path: '',

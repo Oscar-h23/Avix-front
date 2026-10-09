@@ -1,0 +1,158 @@
+<section class="page">
+  <div class="page-heading">
+    <div>
+      <h1>Dashboard AVIX</h1>
+      <p>Resumen operativo de fugas y derivados por turno.</p>
+    </div>
+
+    <div class="dashboard-filters card">
+      <div class="field">
+        <label>Fecha operativa</label>
+        <input type="date" [(ngModel)]="fecha">
+      </div>
+
+      <div class="field">
+        <label>Turno</label>
+        <select [(ngModel)]="turno">
+          @for (item of turnos; track item.value) {
+            <option [ngValue]="item.value">
+              {{ item.label }} · {{ item.horario }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <button class="primary-button" type="button" (click)="cargar()">
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="error-box dashboard-error">{{ error }}</div>
+  }
+
+  <div class="stats-grid">
+    <article class="stat-card card">
+      <span>Total de eventos</span>
+      <strong>{{ total }}</strong>
+      <small>Registros del turno</small>
+    </article>
+
+    <article class="stat-card card danger">
+      <span>Fugas</span>
+      <strong>{{ fugas }}</strong>
+      <small>{{ total ? ((fugas / total) * 100 | number:'1.0-0') : 0 }}% del total</small>
+    </article>
+
+    <article class="stat-card card blue">
+      <span>Derivados</span>
+      <strong>{{ derivados }}</strong>
+      <small>{{ total ? ((derivados / total) * 100 | number:'1.0-0') : 0 }}% del total</small>
+    </article>
+
+    <article class="stat-card card">
+      <span>Placas únicas</span>
+      <strong>{{ placasUnicas }}</strong>
+      <small>Vehículos identificados</small>
+    </article>
+  </div>
+
+  @if (loading) {
+    <div class="loading-line">Cargando datos desde SIGO...</div>
+  }
+
+  <div class="dashboard-grid">
+    <article class="chart-card card">
+      <div class="card-title">
+        <div>
+          <h2>Eventos por vía</h2>
+          <p>Concentración de registros en el turno seleccionado.</p>
+        </div>
+      </div>
+
+      @if (porVia.length) {
+        <div class="bar-list">
+          @for (item of porVia; track item.label) {
+            <div class="bar-row">
+              <span>{{ item.label }}</span>
+              <div class="bar-track">
+                <div class="bar-fill" [style.width.%]="item.width"></div>
+              </div>
+              <b>{{ item.value }}</b>
+            </div>
+          }
+        </div>
+      } @else if (!loading) {
+        <div class="empty">No hay eventos para mostrar.</div>
+      }
+    </article>
+
+    <article class="chart-card card">
+      <div class="card-title">
+        <div>
+          <h2>Eventos por hora</h2>
+          <p>Distribución horaria del turno.</p>
+        </div>
+      </div>
+
+      @if (porHora.length) {
+        <div class="bar-list">
+          @for (item of porHora; track item.label) {
+            <div class="bar-row">
+              <span>{{ item.label }}</span>
+              <div class="bar-track">
+                <div class="bar-fill secondary" [style.width.%]="item.width"></div>
+              </div>
+              <b>{{ item.value }}</b>
+            </div>
+          }
+        </div>
+      } @else if (!loading) {
+        <div class="empty">No hay eventos para mostrar.</div>
+      }
+    </article>
+  </div>
+
+  <article class="recent-card card">
+    <div class="card-title">
+      <div>
+        <h2>Últimos registros</h2>
+        <p>Actividad más reciente del turno.</p>
+      </div>
+      <a href="/historial">Ver historial</a>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Placa</th>
+            <th>Vía</th>
+            <th>Acción</th>
+            <th>Trabajador</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of registros.slice(0, 7); track item.id) {
+            <tr>
+              <td>{{ fechaEvento(item.fechaHoraEvento) }}</td>
+              <td><b>{{ item.placa }}</b></td>
+              <td>Vía {{ item.via }}</td>
+              <td>
+                <span
+                  class="action-badge"
+                  [class.fuga]="item.accion === 'FUGA'"
+                >
+                  {{ item.accion }}
+                </span>
+              </td>
+              <td>{{ item.usuarioNombre }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

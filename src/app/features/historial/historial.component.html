@@ -1,0 +1,258 @@
+<section class="page">
+  <div class="page-heading">
+    <div>
+      <h1>Historial AVIX</h1>
+      <p>
+        Consulta los eventos por fecha operativa, turno y periodos de una hora.
+      </p>
+    </div>
+  </div>
+
+  <section class="filters card">
+    <div class="top-filters">
+      <div class="field">
+        <label>Fecha operativa</label>
+        <input type="date" [(ngModel)]="fecha">
+      </div>
+
+      <div class="field action-field">
+        <label>Acción</label>
+        <select [(ngModel)]="accion">
+          <option value="">Todas</option>
+          <option value="FUGA">FUGA</option>
+          <option value="DERIVADO">DERIVADO</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Vía</label>
+        <input
+          [(ngModel)]="via"
+          inputmode="numeric"
+          placeholder="Todas"
+        >
+      </div>
+
+      <div class="field plate-search">
+        <label>Buscar placa</label>
+        <input
+          [(ngModel)]="buscarPlaca"
+          placeholder="Ej. I1L110"
+        >
+      </div>
+    </div>
+
+    <div class="shift-section">
+      <div class="filter-label">
+        <b>Turno</b>
+        <span>
+          A 06–14 · B 14–22 · C 22–06
+        </span>
+      </div>
+
+      <div class="shift-buttons">
+        @for (item of turnos; track item.value) {
+          <button
+            type="button"
+            [class.active]="turno === item.value"
+            (click)="turno = item.value; cambiarTurno()"
+          >
+            <strong>{{ item.label }}</strong>
+            <small>{{ item.horario }}</small>
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="hour-section">
+      <div class="field">
+        <label>Periodo por hora</label>
+        <select
+          [(ngModel)]="franja"
+          [disabled]="turno === 'TODOS'"
+        >
+          <option [ngValue]="null">Todo el turno</option>
+          @for (item of franjas; track item.value) {
+            <option [ngValue]="item.value">
+              {{ item.label }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <div class="window-summary">
+        <span>Ventana consultada</span>
+        <b>{{ ventanaDescripcion || 'Selecciona y aplica los filtros' }}</b>
+      </div>
+
+      <div class="filter-actions">
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="limpiar()"
+        >
+          Limpiar
+        </button>
+        <button
+          type="button"
+          class="primary-button"
+          (click)="cargar()"
+        >
+          Aplicar filtros
+        </button>
+      </div>
+    </div>
+  </section>
+
+  @if (error) {
+    <div class="error-box history-error">{{ error }}</div>
+  }
+
+  <section class="result-card card">
+    <div class="results-header">
+      <div>
+        <h2>Registros</h2>
+        <p>
+          {{ registrosFiltrados.length }} resultado(s)
+          @if (buscarPlaca) {
+            · búsqueda local por placa
+          }
+        </p>
+      </div>
+
+      @if (loading) {
+        <span class="loading-line">Consultando SIGO...</span>
+      }
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha / hora</th>
+            <th>Placa</th>
+            <th>Vía</th>
+            <th>Acción</th>
+            <th>Plaza</th>
+            <th>Trabajador</th>
+            <th>Código</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (item of registrosFiltrados; track item.id) {
+            <tr>
+              <td>{{ fechaEvento(item.fechaHoraEvento) }}</td>
+              <td class="plate">{{ item.placa }}</td>
+              <td>Vía {{ item.via }}</td>
+              <td>
+                <span
+                  class="action-badge"
+                  [class.fuga]="item.accion === 'FUGA'"
+                >
+                  {{ item.accion }}
+                </span>
+              </td>
+              <td>{{ item.plazaCodigo }}</td>
+              <td>{{ item.usuarioNombre }}</td>
+              <td>#{{ item.usuarioCodigo }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="edit-button"
+                  (click)="abrirEdicion(item)"
+                >
+                  Editar
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            @if (!loading) {
+              <tr>
+                <td colspan="8" class="empty-row">
+                  No existen registros para los filtros seleccionados.
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+@if (editing) {
+  <div class="modal-backdrop" (click)="cerrarEdicion()">
+    <section class="edit-modal card" (click)="$event.stopPropagation()">
+      <div class="modal-heading">
+        <div>
+          <span>Corrección de historial</span>
+          <h2>Editar {{ editing.placa }}</h2>
+        </div>
+        <button type="button" (click)="cerrarEdicion()">×</button>
+      </div>
+
+      <div class="edit-grid">
+        <div class="field">
+          <label>Placa</label>
+          <input
+            [(ngModel)]="editPlaca"
+            maxlength="6"
+          >
+        </div>
+
+        <div class="field">
+          <label>Vía</label>
+          <input
+            [(ngModel)]="editVia"
+            inputmode="numeric"
+          >
+        </div>
+
+        <div class="field full">
+          <label>Acción</label>
+          <div class="edit-actions">
+            <button
+              type="button"
+              [class.active]="editAccion === 'FUGA'"
+              (click)="editAccion = 'FUGA'"
+            >
+              FUGA
+            </button>
+            <button
+              type="button"
+              [class.active]="editAccion === 'DERIVADO'"
+              (click)="editAccion = 'DERIVADO'"
+            >
+              DERIVADO
+            </button>
+          </div>
+        </div>
+      </div>
+
+      @if (editError) {
+        <div class="error-box">{{ editError }}</div>
+      }
+
+      <div class="modal-actions">
+        <button
+          type="button"
+          class="secondary-button"
+          [disabled]="saving"
+          (click)="cerrarEdicion()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="primary-button"
+          [disabled]="saving"
+          (click)="guardarEdicion()"
+        >
+          {{ saving ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

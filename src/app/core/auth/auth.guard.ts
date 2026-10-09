@@ -10,3 +10,13 @@ export const authGuard: CanActivateFn = () => {
     ? true
     : router.createUrlTree(['/login']);
 };
+
+
+export const supervisorGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  return auth.usuario()?.rol === 'SUPERVISOR'
+    ? true
+    : router.createUrlTree(['/dashboard']);
+};

@@ -1,4 +1,4 @@
-export type AviAccion = 'FUGA' | 'DERIVADO';
+export type AviAccion = 'FUGA' | 'DERIVADO' | 'LIBERADO';
 
 export interface AviUsuario {
   id: number;
@@ -45,4 +45,19 @@ export interface RegistroQuery {
   plazaId?: number;
   via?: number;
   accion?: AviAccion;
+}
+
+
+export interface AviPlazaConfig {
+  id: number;
+  codigo: string;
+  descripcion: string | null;
+}
+
+export interface AviViaConfig {
+  id: number;
+  plazaId: number;
+  numero: number;
+  nombre: string | null;
+  visible: boolean;
 }

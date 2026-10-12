@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import {
   AviAccion,
   AviRegistro
@@ -45,7 +47,16 @@ export class HistorialComponent implements OnInit {
   saving = false;
   editError = '';
 
-  constructor(private readonly api: AviApiService) {}
+  private readonly destroyRef = inject(DestroyRef);
+  private registrosRequest?: Subscription;
+  private filtroOrigen?: AviRegistro[];
+  private filtroTexto = '';
+  private filtroResultado: AviRegistro[] = [];
+
+  constructor(
+    private readonly api: AviApiService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.cargar();
@@ -56,17 +67,17 @@ export class HistorialComponent implements OnInit {
   }
 
   get registrosFiltrados(): AviRegistro[] {
-    const search = this.buscarPlaca
-      .trim()
-      .toUpperCase();
-
-    if (!search) {
-      return this.registros;
+    const search = this.buscarPlaca.trim().toUpperCase();
+    // Evita filtrar nuevamente en cada evaluación de la plantilla.
+    if (this.filtroOrigen !== this.registros || this.filtroTexto !== search) {
+      this.filtroOrigen = this.registros;
+      this.filtroTexto = search;
+      this.filtroResultado = search
+        ? this.registros.filter((item) => item.placa.toUpperCase().includes(search))
+        : this.registros;
     }
 
-    return this.registros.filter((item) =>
-      item.placa.toUpperCase().includes(search)
-    );
+    return this.filtroResultado;
   }
 
   cambiarTurno(): void {
@@ -75,6 +86,7 @@ export class HistorialComponent implements OnInit {
   }
 
   cargar(): void {
+    this.registrosRequest?.unsubscribe();
     const window = ventanaOperativa(
       this.fecha,
       this.turno,
@@ -87,7 +99,7 @@ export class HistorialComponent implements OnInit {
 
     const parsedVia = Number(this.via);
 
-    this.api.listarRegistros({
+    this.registrosRequest = this.api.listarRegistros({
       desde: window.desde,
       hasta: window.hasta,
       via:
@@ -95,7 +107,7 @@ export class HistorialComponent implements OnInit {
           ? parsedVia
           : undefined,
       accion: this.accion || undefined
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (items) => {
         this.loading = false;
         this.registros = [...items].sort(
@@ -103,12 +115,14 @@ export class HistorialComponent implements OnInit {
             new Date(b.fechaHoraEvento).getTime() -
             new Date(a.fechaHoraEvento).getTime()
         );
+        this.cdr.markForCheck();
       },
       error: (error) => {
         this.loading = false;
         this.error =
           error?.error?.message ??
           'No se pudo consultar el historial en SIGO.';
+        this.cdr.markForCheck();
       }
     });
   }
@@ -174,17 +188,19 @@ export class HistorialComponent implements OnInit {
       accion: this.editAccion,
       fechaHoraEvento: this.editing.fechaHoraEvento,
       textoReconocido: this.editing.textoReconocido ?? ''
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
         this.editing = null;
         this.cargar();
+        this.cdr.markForCheck();
       },
       error: (error) => {
         this.saving = false;
         this.editError =
           error?.error?.message ??
           'No se pudo actualizar el registro.';
+        this.cdr.markForCheck();
       }
     });
   }

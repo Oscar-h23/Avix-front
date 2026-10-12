@@ -13,6 +13,25 @@ export interface VentanaTiempo {
 
 const PERU_OFFSET = '-05:00';
 
+// Reutilizar Intl.DateTimeFormat evita construir uno por cada fila de la tabla.
+const HOUR_LABEL_FORMATTER = new Intl.DateTimeFormat('es-PE', {
+  timeZone: 'America/Lima',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23'
+});
+
+const DATE_TIME_LABEL_FORMATTER = new Intl.DateTimeFormat('es-PE', {
+  timeZone: 'America/Lima',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23'
+});
+
 const LIMITES: Record<TurnoFiltro, [number, number]> = {
   TODOS: [6, 30],
   A: [6, 14],
@@ -118,27 +137,11 @@ export function contextoOperativoActual(): {
 }
 
 export function hourLabelFromIso(iso: string): string {
-  const date = new Date(iso);
-  return new Intl.DateTimeFormat('es-PE', {
-    timeZone: 'America/Lima',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23'
-  }).format(date);
+  return HOUR_LABEL_FORMATTER.format(new Date(iso));
 }
 
 export function dateTimeLabelFromIso(iso: string): string {
-  const date = new Date(iso);
-  return new Intl.DateTimeFormat('es-PE', {
-    timeZone: 'America/Lima',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23'
-  }).format(date);
+  return DATE_TIME_LABEL_FORMATTER.format(new Date(iso));
 }
 
 function isoOperativo(fecha: string, horaOperativa: number): string {

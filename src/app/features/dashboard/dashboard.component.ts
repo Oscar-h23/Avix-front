@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AviRegistro } from '../../core/models/avi.models';
 import { AviApiService } from '../../core/services/avi-api.service';
 import {
@@ -66,7 +68,18 @@ export class DashboardComponent implements OnInit {
   porVia: ViaItem[] = [];
   porHora: HourItem[] = [];
 
-  constructor(private readonly api: AviApiService) {}
+  private readonly destroyRef = inject(DestroyRef);
+  private registrosRequest?: Subscription;
+  private readonly hourFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Lima',
+    hour: '2-digit',
+    hourCycle: 'h23'
+  });
+
+  constructor(
+    private readonly api: AviApiService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.cargar();
@@ -98,15 +111,17 @@ export class DashboardComponent implements OnInit {
   }
 
   cargar(): void {
+    // La última selección de fecha/turno es la única que debe actualizar la pantalla.
+    this.registrosRequest?.unsubscribe();
     const ventana = ventanaOperativa(this.fecha, this.turno);
     this.ventanaDescripcion = ventana.descripcion;
     this.loading = true;
     this.error = '';
 
-    this.api.listarRegistros({
+    this.registrosRequest = this.api.listarRegistros({
       desde: ventana.desde,
       hasta: ventana.hasta
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (registros) => {
         this.loading = false;
         this.registros = [...registros].sort(
@@ -122,12 +137,14 @@ export class DashboardComponent implements OnInit {
           second: '2-digit',
           hourCycle: 'h23'
         }).format(new Date());
+        this.cdr.markForCheck();
       },
       error: (error) => {
         this.loading = false;
         this.error =
           error?.error?.message ??
           'No se pudo cargar el dashboard desde SIGO.';
+        this.cdr.markForCheck();
       }
     });
   }
@@ -274,12 +291,6 @@ export class DashboardComponent implements OnInit {
   }
 
   private horaLima(iso: string): number {
-    const hour = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/Lima',
-      hour: '2-digit',
-      hourCycle: 'h23'
-    }).format(new Date(iso));
-
-    return Number(hour);
+    return Number(this.hourFormatter.format(new Date(iso)));
   }
 }

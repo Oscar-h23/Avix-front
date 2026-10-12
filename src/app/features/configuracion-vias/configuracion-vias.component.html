@@ -1,18 +1,23 @@
-<section class="page">
+<section class="page vias-page">
   <div class="page-heading">
     <div>
-      <h1>Vías visibles en AVIX</h1>
-      <p>
-        Configuración global por plaza. Los móviles AVIX solo mostrarán las vías habilitadas aquí.
-      </p>
+      <span class="eyebrow">ADMINISTRACIÓN · AVIX</span>
+      <h1>Configuración de vías</h1>
+      <p>Controla qué vías pueden visualizar y seleccionar los operadores en AVIX.</p>
     </div>
+    <span class="header-label">Configuración global</span>
   </div>
 
   <section class="config-card card">
     <div class="toolbar">
-      <div class="field">
-        <label>Plaza</label>
-        <select [(ngModel)]="plazaId" (change)="cargarVias()">
+      <div class="field plaza-field">
+        <label for="plaza-select">Seleccionar plaza</label>
+        <select
+          id="plaza-select"
+          [(ngModel)]="plazaId"
+          (change)="cargarVias()"
+          [disabled]="loading || savingId !== null || cambioPendiente !== null"
+        >
           @for (plaza of plazas; track plaza.id) {
             <option [ngValue]="plaza.id">
               {{ plaza.codigo }}{{ plaza.descripcion ? ' · ' + plaza.descripcion : '' }}
@@ -21,47 +26,175 @@
         </select>
       </div>
 
-      <div class="summary">
-        <span>Visibles en AVIX</span>
-        <strong>{{ visibles }} / {{ vias.length }}</strong>
+      <div class="summary" aria-live="polite">
+        <div class="summary-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/>
+            <circle cx="8" cy="7" r="2" fill="currentColor" stroke="none"/>
+            <circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/>
+            <circle cx="10" cy="17" r="2" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        <div class="summary-copy">
+          <span>Vías habilitadas</span>
+          <strong>{{ visibles }} <small>/ {{ vias.length }}</small></strong>
+        </div>
       </div>
     </div>
 
     @if (error) {
-      <div class="error-box">{{ error }}</div>
-    }
-
-    @if (message) {
-      <div class="success-box">{{ message }}</div>
+      <div class="error-box" role="alert">{{ error }}</div>
     }
 
     @if (loading) {
-      <div class="loading-line">Cargando configuración...</div>
-    } @else if (!vias.length) {
-      <div class="empty-state">
-        No hay vías activas registradas para esta plaza.
+      <div class="loading-state" role="status">
+        <span class="mini-spinner" aria-hidden="true"></span>
+        Cargando vías de la plaza...
       </div>
-    } @else {
+    } @else if (!vias.length && !error) {
+      <div class="empty-state">
+        <div class="empty-icon" aria-hidden="true">—</div>
+        <strong>Sin vías registradas</strong>
+        <span>Esta plaza todavía no tiene vías configuradas.</span>
+      </div>
+    } @else if (vias.length) {
+      <div class="list-heading">
+        <div>
+          <h2>Estado de las vías</h2>
+          <p>Activa o desactiva una vía. Te pediremos confirmación antes de guardar.</p>
+        </div>
+        <span class="list-count">{{ vias.length }} vías</span>
+      </div>
+
       <div class="lane-list">
         @for (via of vias; track via.id) {
-          <article class="lane-row" [class.off]="!via.visible">
-            <div class="lane-copy">
-              <span class="lane-number">Vía {{ via.numero }}</span>
-              <small>{{ via.nombre || 'Sin nombre adicional' }}</small>
+          <article class="lane-row" [class.off]="!via.visible" [class.saving]="savingId === via.id">
+            <div class="lane-info">
+              <div class="lane-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M7 4 5 20M17 4l2 16M12 5v3m0 4v3m0 4v1"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="lane-copy">
+                <strong>Vía {{ via.numero }}</strong>
+                <small>{{ via.nombre || 'Sin nombre adicional' }}</small>
+              </div>
             </div>
 
-            <label class="switch">
-              <input
-                type="checkbox"
-                [checked]="via.visible"
-                [disabled]="savingId !== null"
-                (change)="cambiarVisibilidad(via, $any($event.target).checked)"
+            <div class="lane-actions">
+              @if (savingId === via.id) {
+                <span class="saving-label"><span class="mini-spinner" aria-hidden="true"></span> Guardando...</span>
+              } @else {
+                <span class="lane-status" [class.disabled-status]="!via.visible">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  {{ via.visible ? 'Habilitada' : 'Deshabilitada' }}
+                </span>
+              }
+
+              <button
+                type="button"
+                class="switch"
+                role="switch"
+                [attr.aria-checked]="via.visible"
+                [attr.aria-label]="(via.visible ? 'Deshabilitar' : 'Habilitar') + ' vía ' + via.numero"
+                [disabled]="savingId !== null || loading || cambioPendiente !== null"
+                (click)="solicitarCambio(via, $event)"
               >
-              <span></span>
-            </label>
+                <span class="switch-track" [class.is-on]="via.visible">
+                  <span class="switch-thumb"></span>
+                </span>
+              </button>
+            </div>
           </article>
         }
       </div>
+
+      <p class="config-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 11v5m0-8h.01" stroke-linecap="round"/>
+        </svg>
+        Los cambios se aplican a la configuración global de la plaza al confirmarlos.
+      </p>
     }
   </section>
 </section>
+
+@if (cambioPendiente; as cambio) {
+  <div class="confirm-backdrop" (click)="cancelarCambio()">
+    <section
+      class="confirm-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="confirm-title"
+      aria-describedby="confirm-description"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="confirm-icon" [class.disable-icon]="!cambio.visible" aria-hidden="true">
+        @if (cambio.visible) {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="m5 12 5 5L20 7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 5 19 19M19 5 5 19" stroke-linecap="round"/>
+          </svg>
+        }
+      </div>
+
+      <span class="confirm-kicker">CONFIRMAR CAMBIO</span>
+      <h2 id="confirm-title">¿{{ cambio.visible ? 'Habilitar' : 'Deshabilitar' }} vía {{ cambio.numero }}?</h2>
+      <p id="confirm-description">
+        @if (cambio.visible) {
+          La vía volverá a estar disponible para los operadores de AVIX.
+        } @else {
+          La vía dejará de mostrarse como opción disponible para los operadores de AVIX.
+        }
+      </p>
+      <div class="confirm-details">
+        <span>Plaza <strong>{{ cambio.plazaCodigo }}</strong></span>
+        <span>Vía <strong>{{ cambio.numero }}</strong></span>
+      </div>
+
+      <div class="confirm-actions">
+        <button type="button" #botonCancelar class="cancel-button" (click)="cancelarCambio()">Cancelar</button>
+        <button
+          type="button"
+          class="confirm-button"
+          [class.danger-button]="!cambio.visible"
+          (click)="confirmarCambio()"
+        >
+          Sí, {{ cambio.visible ? 'habilitar' : 'deshabilitar' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (notificacion; as aviso) {
+  <div
+    class="feedback-toast"
+    [class.toast-error]="aviso.tipo === 'error'"
+    [attr.role]="aviso.tipo === 'error' ? 'alert' : 'status'"
+    [attr.aria-live]="aviso.tipo === 'error' ? 'assertive' : 'polite'"
+  >
+    <span class="toast-icon" aria-hidden="true">
+      @if (aviso.tipo === 'success') {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="m5 12 5 5L20 7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      } @else {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 7v6m0 4h.01" stroke-linecap="round"/>
+        </svg>
+      }
+    </span>
+    <div class="toast-copy">
+      <strong>{{ aviso.titulo }}</strong>
+      <p>{{ aviso.detalle }}</p>
+    </div>
+    <button type="button" class="toast-close" aria-label="Cerrar notificación" (click)="cerrarNotificacion()">×</button>
+  </div>
+}

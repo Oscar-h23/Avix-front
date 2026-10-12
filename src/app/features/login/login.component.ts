@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
@@ -16,9 +17,12 @@ export class LoginComponent implements OnInit {
   loading = false;
   error = '';
 
+  private readonly destroyRef = inject(DestroyRef);
+
   constructor(
     private readonly auth: AuthService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -38,9 +42,10 @@ export class LoginComponent implements OnInit {
 
     this.loading = true;
 
-    this.auth.login(codigo).subscribe({
+    this.auth.login(codigo).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading = false;
+        this.cdr.markForCheck();
         void this.router.navigate(['/dashboard']);
       },
       error: (error) => {
@@ -48,6 +53,7 @@ export class LoginComponent implements OnInit {
         this.error =
           error?.error?.message ??
           'No se pudo iniciar sesión. Verifica el código e intenta nuevamente.';
+        this.cdr.markForCheck();
       }
     });
   }

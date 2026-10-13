@@ -99,6 +99,72 @@ export function ventanaOperativa(
   };
 }
 
+/**
+ * Ventana del mes OPERATIVO: desde las 06:00 del día 1 hasta las 06:00
+ * del día 1 del mes siguiente. Así se incluye completo el último turno C.
+ * Usa fechas civiles de Lima y no la zona horaria del navegador.
+ */
+export function ventanaMensualOperativa(mes: string): VentanaTiempo {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) {
+    throw new Error('Mes operativo inválido');
+  }
+
+  const [year, month] = mes.split('-').map(Number);
+  const firstDay = `${mes}-01`;
+  const nextMonth = new Date(Date.UTC(year, month, 1));
+  const nextDay = [
+    nextMonth.getUTCFullYear(),
+    pad(nextMonth.getUTCMonth() + 1),
+    '01'
+  ].join('-');
+
+  const label = new Intl.DateTimeFormat('es-PE', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  }).format(new Date(Date.UTC(year, month - 1, 1)));
+
+  return {
+    desde: `${firstDay}T06:00:00${PERU_OFFSET}`,
+    hasta: `${nextDay}T06:00:00${PERU_OFFSET}`,
+    descripcion: `Mes operativo: ${label} · 06:00–06:00`
+  };
+}
+
+/** Cantidad de jornadas operativas que forman un mes calendario. */
+export function diasDelMes(mes: string): number {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) {
+    return 0;
+  }
+  const [year, month] = mes.split('-').map(Number);
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/**
+ * Vista del gráfico: ocho franjas por turno o las 24 franjas cuando
+ * se seleccionan todos. No modifica el filtro horario del Historial.
+ */
+export function franjasDashboard(turno: TurnoFiltro): FranjaHoraria[] {
+  if (turno !== 'TODOS') return franjasPorTurno(turno);
+
+  const franjas: FranjaHoraria[] = [];
+  for (let hour = 6; hour < 30; hour++) {
+    franjas.push({
+      value: hour,
+      label: `${pad(hour % 24)}:00 – ${pad((hour + 1) % 24)}:00`
+    });
+  }
+  return franjas;
+}
+
+/** A/B/C por la hora LOCAL de Lima; C comprende 22:00–05:59. */
+export function perteneceATurno(horaLima: number, turno: TurnoFiltro): boolean {
+  if (turno === 'TODOS') return true;
+  if (turno === 'A') return horaLima >= 6 && horaLima < 14;
+  if (turno === 'B') return horaLima >= 14 && horaLima < 22;
+  return horaLima >= 22 || horaLima < 6;
+}
+
 export function contextoOperativoActual(): {
   fecha: string;
   turno: Exclude<TurnoFiltro, 'TODOS'>;

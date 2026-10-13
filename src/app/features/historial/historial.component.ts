@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 import {
   AviAccion,
-  AviRegistro
+  AviRegistro,
+  RegistroQuery
 } from '../../core/models/avi.models';
 import { AviApiService } from '../../core/services/avi-api.service';
 import {
@@ -39,6 +40,10 @@ export class HistorialComponent implements OnInit {
   loading = false;
   error = '';
   ventanaDescripcion = '';
+  readonly intervaloActualizacionSegundos = 10;
+  autoActualizar = true;
+  actualizandoEnSegundoPlano = false;
+  ultimaActualizacion = '';
 
   editing: AviRegistro | null = null;
   editPlaca = '';
@@ -49,6 +54,7 @@ export class HistorialComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
   private registrosRequest?: Subscription;
+  private filtrosAplicados: RegistroQuery | null = null;
   private filtroOrigen?: AviRegistro[];
   private filtroTexto = '';
   private filtroResultado: AviRegistro[] = [];
@@ -60,6 +66,33 @@ export class HistorialComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargar();
+
+    // Una sola suscripción durante la vida de la pantalla; se libera al salir.
+    timer(10_000, 10_000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        // Evita consultas innecesarias cuando la pestaña no está visible y
+        // no altera el historial mientras se edita o guarda un registro.
+        if (
+          !this.autoActualizar ||
+          this.editing != null ||
+          this.saving ||
+          (typeof document !== 'undefined' && document.hidden)
+        ) {
+          return;
+        }
+
+        if (this.filtrosAplicados) {
+          this.consultarRegistros(this.filtrosAplicados, true);
+        }
+      });
+  }
+
+  alternarActualizacionAutomatica(): void {
+    this.autoActualizar = !this.autoActualizar;
+    if (this.autoActualizar && !this.editing && !this.saving && this.filtrosAplicados) {
+      this.consultarRegistros(this.filtrosAplicados, true);
+    }
   }
 
   get franjas(): FranjaHoraria[] {
@@ -86,7 +119,6 @@ export class HistorialComponent implements OnInit {
   }
 
   cargar(): void {
-    this.registrosRequest?.unsubscribe();
     const window = ventanaOperativa(
       this.fecha,
       this.turno,
@@ -94,12 +126,11 @@ export class HistorialComponent implements OnInit {
     );
 
     this.ventanaDescripcion = window.descripcion;
-    this.loading = true;
-    this.error = '';
-
     const parsedVia = Number(this.via);
 
-    this.registrosRequest = this.api.listarRegistros({
+    // El temporizador reutiliza únicamente los filtros ya aplicados,
+    // sin incluir cambios que el usuario todavía esté escribiendo.
+    const query: RegistroQuery = {
       desde: window.desde,
       hasta: window.hasta,
       via:
@@ -107,24 +138,58 @@ export class HistorialComponent implements OnInit {
           ? parsedVia
           : undefined,
       accion: this.accion || undefined
-    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (items) => {
-        this.loading = false;
-        this.registros = [...items].sort(
-          (a, b) =>
-            new Date(b.fechaHoraEvento).getTime() -
-            new Date(a.fechaHoraEvento).getTime()
-        );
-        this.cdr.markForCheck();
-      },
-      error: (error) => {
-        this.loading = false;
-        this.error =
-          error?.error?.message ??
-          'No se pudo consultar el historial en SIGO.';
-        this.cdr.markForCheck();
-      }
-    });
+    };
+    this.filtrosAplicados = query;
+    this.consultarRegistros(query, false);
+  }
+
+  private consultarRegistros(query: RegistroQuery, automatico: boolean): void {
+    // Si una actualización anterior sigue activa, esperar al próximo ciclo.
+    // En cambio, "Aplicar filtros" puede cancelar una consulta obsoleta.
+    if (automatico && this.registrosRequest && !this.registrosRequest.closed) {
+      return;
+    }
+
+    this.registrosRequest?.unsubscribe();
+    this.loading = !automatico;
+    this.actualizandoEnSegundoPlano = automatico;
+
+    if (!automatico) {
+      this.error = '';
+    }
+
+    this.registrosRequest = this.api.listarRegistros(query)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (items) => {
+          this.loading = false;
+          this.actualizandoEnSegundoPlano = false;
+          this.error = '';
+          this.registros = [...items].sort(
+            (a, b) =>
+              new Date(b.fechaHoraEvento).getTime() -
+              new Date(a.fechaHoraEvento).getTime()
+          );
+          this.ultimaActualizacion = new Date().toLocaleTimeString('es-PE', {
+            timeZone: 'America/Lima',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          });
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          this.loading = false;
+          this.actualizandoEnSegundoPlano = false;
+          // Mantener en pantalla los últimos registros correctos si falla
+          // una actualización de fondo; se reintentará en 10 segundos.
+          this.error = error?.error?.message ??
+            'No se pudo actualizar el historial en SIGO. Se reintentará automáticamente.';
+          this.cdr.markForCheck();
+        }
+      });
+
+    this.cdr.markForCheck();
   }
 
   limpiar(): void {

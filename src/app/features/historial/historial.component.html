@@ -21,6 +21,7 @@
           <option value="">Todas</option>
           <option value="FUGA">FUGA</option>
           <option value="DERIVADO">DERIVADO</option>
+          <option value="LIBERADO">LIBERADO</option>
         </select>
       </div>
 
@@ -150,6 +151,7 @@
                 <span
                   class="action-badge"
                   [class.fuga]="item.accion === 'FUGA'"
+                  [class.liberado]="item.accion === 'LIBERADO'"
                 >
                   {{ item.accion }}
                 </span>
@@ -226,6 +228,14 @@
               (click)="editAccion = 'DERIVADO'"
             >
               DERIVADO
+            </button>
+            <button
+              type="button"
+              [class.active]="editAccion === 'LIBERADO'"
+              [class.liberado-active]="editAccion === 'LIBERADO'"
+              (click)="editAccion = 'LIBERADO'"
+            >
+              LIBERADO
             </button>
           </div>
         </div>

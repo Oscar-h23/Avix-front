@@ -746,26 +746,116 @@
   font-size: .7rem;
 }
 
-.hour-grid {
-  min-height: 285px;
-  display: grid;
-  grid-template-columns: repeat(8, minmax(68px, 1fr));
-  gap: 10px;
-  align-items: end;
+.hour-chart-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-bottom: 14px;
+}
+
+.hour-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hour-legend span {
+  display: inline-flex;
+  padding: 6px 9px;
+  border-radius: 8px;
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+.hour-legend .fuga {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.hour-legend .derivado {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.hour-legend .liberado {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.hour-scroll-hint {
+  color: #64748b;
+  font-size: .7rem;
+}
+
+.hour-scroll-hint span {
+  display: inline-block;
+  margin-left: 4px;
+  color: #2563eb;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.hour-chart-scroll {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
-  padding: 5px 2px 2px;
+  overflow-y: hidden;
+  padding-bottom: 7px;
+  border: 1px solid #e3eaf5;
+  border-radius: 16px;
+  background: #f8fbff;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #e8eff8;
+}
+
+.hour-chart-scroll:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .3);
+  outline-offset: 3px;
+}
+
+.hour-grid {
+  min-height: 324px;
+  display: grid;
+  width: 100%;
+  min-width: 1060px;
+  grid-template-columns: repeat(8, minmax(110px, 1fr));
+  column-gap: 20px;
+  align-items: stretch;
+  padding: 16px 15px 20px;
+  box-sizing: border-box;
 }
 
 .hour-grid.all-turns {
-  grid-template-columns: repeat(24, minmax(68px, 1fr));
+  width: max-content;
+  min-width: 0;
+  grid-template-columns: repeat(24, 110px);
 }
 
 .hour-column {
-  min-width: 68px;
+  position: relative;
+  min-width: 0;
   display: grid;
-  grid-template-rows: auto 155px auto auto;
-  gap: 8px;
+  grid-template-rows: 42px 170px auto auto;
+  align-items: end;
+  gap: 10px;
+  padding: 12px 10px;
+  border: 1px solid #e5ebf4;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 3px 9px rgba(15, 23, 42, .035);
   text-align: center;
+}
+
+.hour-column.shift-divider::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 12px;
+  bottom: 12px;
+  border-left: 2px dashed #a9bfdc;
 }
 
 .hour-value strong,
@@ -775,7 +865,7 @@
 
 .hour-value strong {
   color: #0f172a;
-  font-size: .9rem;
+  font-size: 1rem;
 }
 
 .hour-value span {
@@ -786,13 +876,16 @@
 
 .hour-track {
   position: relative;
+  width: 40px;
+  max-width: 100%;
+  height: 170px;
+  justify-self: center;
   overflow: hidden;
   display: flex;
   align-items: flex-end;
   border-radius: 10px 10px 5px 5px;
-  background:
-    linear-gradient(to top, #f8fafc, #fbfdff);
-  box-shadow: inset 0 0 0 1px #eef2f7;
+  background: linear-gradient(to top, #edf3fc, #f8fbff);
+  box-shadow: inset 0 0 0 1px #e5edf7;
 }
 
 .hour-fill {
@@ -815,27 +908,29 @@
 
 .hour-label b {
   color: #334155;
-  font-size: .64rem;
+  font-size: .73rem;
 }
 
 .hour-label small {
   margin-top: 2px;
   color: #94a3b8;
-  font-size: .54rem;
+  font-size: .6rem;
 }
 
 .hour-breakdown {
-  display: flex;
-  justify-content: center;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
 }
 
 .hour-breakdown span {
-  min-width: 25px;
-  padding: 3px 4px;
-  border-radius: 999px;
-  font-size: .52rem;
+  min-width: 0;
+  padding: 4px 2px;
+  border-radius: 7px;
+  font-size: .55rem;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .hour-breakdown .fuga {
@@ -1058,7 +1153,19 @@ tbody tr:hover {
   }
 
   .hour-grid {
-    grid-template-columns: repeat(8, 82px);
+    min-width: 0;
+    width: max-content;
+    grid-template-columns: repeat(8, 110px);
+    column-gap: 18px;
+  }
+
+  .hour-grid.all-turns {
+    grid-template-columns: repeat(24, 110px);
+  }
+
+  .hour-chart-meta {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .recent-heading,

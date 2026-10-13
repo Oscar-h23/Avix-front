@@ -13,16 +13,43 @@
         <span class="window-label">
           {{ ventanaDescripcion }}
         </span>
+        <span class="plaza-scope">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 20V7l8-4 8 4v13M4 10h16M9 20v-6h6v6"/>
+          </svg>
+          {{ plazaActualLabel }}
+        </span>
       </div>
 
       <h1>Dashboard AVIX</h1>
       <p>
-        Monitoreo de fugas, derivados y concentración operativa
-        durante el turno seleccionado.
+        Seguimiento de fugas, derivados y liberados por plaza, turno y hora.
+        Todos los indicadores responden a los filtros seleccionados.
       </p>
     </div>
 
     <div class="hero-filters">
+      <div class="field plaza-field">
+        <label for="filtro-plaza">Plaza</label>
+        <select
+          id="filtro-plaza"
+          name="filtroPlaza"
+          [ngModel]="plazaSeleccionada"
+          (ngModelChange)="seleccionarPlaza($event)"
+          [disabled]="loading || !puedeFiltrarPlazas"
+          [attr.aria-label]="puedeFiltrarPlazas ? 'Filtrar por plaza' : 'Plaza asignada al usuario'"
+        >
+          @if (puedeFiltrarPlazas) {
+            <option [ngValue]="null">Todas las plazas</option>
+          } @else if (plazaSeleccionada === null) {
+            <option [ngValue]="null">Sin plaza asignada</option>
+          }
+          @for (plaza of plazasDisponibles; track plaza.id) {
+            <option [ngValue]="plaza.id">{{ plaza.codigo }}</option>
+          }
+        </select>
+      </div>
+
       <div class="field date-field">
         <label>Fecha operativa</label>
         <input
@@ -63,8 +90,23 @@
     </div>
   </section>
 
+  <div class="dashboard-scope-bar" aria-live="polite">
+    <div>
+      <span class="scope-indicator"></span>
+      <strong>{{ plazaActualLabel }}</strong>
+      <span class="scope-divider">·</span>
+      <span>{{ ventanaDescripcion }}</span>
+    </div>
+    <span class="scope-count">
+      {{ loading ? 'Actualizando indicadores…' : total + ' evento(s) en la selección' }}
+    </span>
+  </div>
+
+  @if (errorPlazas) {
+    <div class="catalog-warning">{{ errorPlazas }}</div>
+  }
   @if (error) {
-    <div class="error-box dashboard-error">{{ error }}</div>
+    <div class="error-box dashboard-error" role="alert">{{ error }}</div>
   }
 
   <section class="kpi-grid">
@@ -107,6 +149,19 @@
         <span>Derivados</span>
         <strong>{{ derivados }}</strong>
         <small>{{ porcentajeDerivados }}% del turno</small>
+      </div>
+    </article>
+
+    <article class="kpi-card liberado card">
+      <div class="kpi-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v6h-2V7Zm-3 6 3 3 5-5 1.4 1.4-6.4 6.4-4.4-4.4L8 13Z"/>
+        </svg>
+      </div>
+      <div class="kpi-copy">
+        <span>Liberados</span>
+        <strong>{{ liberados }}</strong>
+        <small>{{ porcentajeLiberados }}% del turno</small>
       </div>
     </article>
 
@@ -156,7 +211,7 @@
         <div>
           <span class="section-kicker">Composición</span>
           <h2>Distribución por acción</h2>
-          <p>Proporción de fugas y derivados dentro del turno.</p>
+          <p>Proporción de fugas, derivados y liberados para la selección.</p>
         </div>
       </div>
 
@@ -188,6 +243,15 @@
               <small>{{ derivados }} registros</small>
             </div>
             <strong>{{ porcentajeDerivados }}%</strong>
+          </div>
+
+          <div class="legend-row">
+            <span class="legend-dot liberado"></span>
+            <div>
+              <b>LIBERADO</b>
+              <small>{{ liberados }} registros</small>
+            </div>
+            <strong>{{ porcentajeLiberados }}%</strong>
           </div>
 
           <div class="action-divider"></div>
@@ -240,6 +304,7 @@
                 <div class="via-breakdown">
                   <span>{{ item.fugas }} fuga(s)</span>
                   <span>{{ item.derivados }} derivado(s)</span>
+                  <span>{{ item.liberados }} liberado(s)</span>
                 </div>
               </div>
             </div>
@@ -298,6 +363,7 @@
           <div class="hour-breakdown">
             <span class="fuga">{{ item.fugas }}F</span>
             <span class="derivado">{{ item.derivados }}D</span>
+            <span class="liberado">{{ item.liberados }}L</span>
           </div>
         </div>
       }
@@ -361,6 +427,7 @@
                 <span
                   class="action-badge"
                   [class.fuga]="item.accion === 'FUGA'"
+                  [class.liberado]="item.accion === 'LIBERADO'"
                 >
                   {{ item.accion }}
                 </span>
@@ -377,7 +444,7 @@
             @if (!loading) {
               <tr>
                 <td colspan="6" class="empty-table">
-                  No hay registros en este turno.
+                  No hay registros para la plaza, fecha y turno seleccionados.
                 </td>
               </tr>
             }

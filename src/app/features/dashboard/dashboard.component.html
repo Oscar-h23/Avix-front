@@ -7,7 +7,7 @@
           [class.live]="esTurnoActual"
         >
           <span class="status-dot"></span>
-          {{ esTurnoActual ? 'Turno en curso' : 'Consulta histórica' }}
+          {{ estadoPeriodo }}
         </span>
 
         <span class="window-label">
@@ -23,8 +23,8 @@
 
       <h1>Dashboard AVIX</h1>
       <p>
-        Seguimiento de fugas, derivados y liberados por plaza, turno y hora.
-        Todos los indicadores responden a los filtros seleccionados.
+        Seguimiento de fugas, derivados y liberados por plaza, fecha y turno.
+        Consulta una jornada o un mes completo con indicadores actualizados.
       </p>
     </div>
 
@@ -50,13 +50,28 @@
         </select>
       </div>
 
+      <div class="period-control">
+        <span>Período</span>
+        <div class="period-buttons" role="group" aria-label="Tipo de período">
+          <button type="button" [class.active]="periodo === 'DIA'"
+            [attr.aria-pressed]="periodo === 'DIA'"
+            (click)="seleccionarPeriodo('DIA')">Día</button>
+          <button type="button" [class.active]="periodo === 'MES'"
+            [attr.aria-pressed]="periodo === 'MES'"
+            (click)="seleccionarPeriodo('MES')">Mes completo</button>
+        </div>
+      </div>
+
       <div class="field date-field">
-        <label>Fecha operativa</label>
-        <input
-          type="date"
-          [(ngModel)]="fecha"
-          (change)="cargar()"
-        >
+        @if (esMes) {
+          <label for="dashboard-mes">Mes operativo</label>
+          <input id="dashboard-mes" name="dashboardMes" type="month"
+            [(ngModel)]="mes" (change)="cargar()">
+        } @else {
+          <label for="dashboard-fecha">Fecha operativa</label>
+          <input id="dashboard-fecha" name="dashboardFecha" type="date"
+            [(ngModel)]="fecha" (change)="cargar()">
+        }
       </div>
 
       <div class="shift-control">
@@ -69,7 +84,7 @@
               [class.active]="turno === item.value"
               (click)="seleccionarTurno(item.value)"
             >
-              <b>{{ item.value }}</b>
+              <b>{{ item.value === 'TODOS' ? 'Todos' : item.value }}</b>
               <small>{{ item.horario }}</small>
             </button>
           }
@@ -107,6 +122,18 @@
   }
   @if (error) {
     <div class="error-box dashboard-error" role="alert">{{ error }}</div>
+  }
+
+  @if (turno === 'TODOS') {
+    <section class="turn-summary" aria-label="Resumen de todos los turnos">
+      @for (t of turnosOperativos; track t) {
+        <article class="turn-summary-card">
+          <span>Turno {{ t }}</span>
+          <strong>{{ resumenTurnos[t] }}</strong>
+          <small>eventos</small>
+        </article>
+      }
+    </section>
   }
 
   <section class="kpi-grid">
@@ -211,7 +238,7 @@
         <div>
           <span class="section-kicker">Composición</span>
           <h2>Distribución por acción</h2>
-          <p>Proporción de fugas, derivados y liberados para la selección.</p>
+          <p>Proporción de fugas, derivados y liberados para el período.</p>
         </div>
       </div>
 
@@ -274,7 +301,7 @@
         <div>
           <span class="section-kicker">Concentración</span>
           <h2>Vías con más eventos</h2>
-          <p>Ranking según cantidad de registros del turno.</p>
+          <p>Ranking de registros de la plaza y período seleccionados.</p>
         </div>
 
         <span class="top-label">
@@ -324,8 +351,8 @@
         <span class="section-kicker">Ritmo operativo</span>
         <h2>Actividad por hora</h2>
         <p>
-          Se muestran todas las franjas del turno, incluso las que
-          no registran eventos.
+          {{ esMes ? 'Suma por hora de todas las jornadas del mes.' : 'Franjas de la jornada o turno seleccionado.' }}
+          También se muestran las horas sin eventos.
         </p>
       </div>
 
@@ -337,7 +364,7 @@
       }
     </div>
 
-    <div class="hour-grid">
+    <div class="hour-grid" [class.all-turns]="turno === 'TODOS'">
       @for (item of porHora; track item.label) {
         <div
           class="hour-column"
@@ -375,7 +402,7 @@
       <div>
         <span class="section-kicker">Actividad reciente</span>
         <h2>Últimos registros</h2>
-        <p>Eventos más recientes del turno seleccionado.</p>
+        <p>Eventos más recientes del período y plaza seleccionados.</p>
       </div>
 
       <div class="recent-actions">

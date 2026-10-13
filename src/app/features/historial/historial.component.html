@@ -37,7 +37,8 @@
       <div class="field plate-search">
         <label>Buscar placa</label>
         <input
-          [(ngModel)]="buscarPlaca"
+          [ngModel]="buscarPlaca"
+          (ngModelChange)="cambiarBusquedaPlaca($event)"
           placeholder="Ej. I1L110"
         >
       </div>
@@ -169,7 +170,7 @@
         </thead>
 
         <tbody>
-          @for (item of registrosFiltrados; track item.id) {
+          @for (item of registrosPaginados; track item.id) {
             <tr>
               <td>{{ fechaEvento(item.fechaHoraEvento) }}</td>
               <td class="plate">{{ item.placa }}</td>
@@ -208,6 +209,41 @@
         </tbody>
       </table>
     </div>
+
+    <nav class="history-pagination" aria-label="Paginación de registros">
+      <span class="pagination-summary">
+        Mostrando {{ primerRegistroPagina }}–{{ ultimoRegistroPagina }}
+        de {{ registrosFiltrados.length }} registros
+      </span>
+
+      @if (registrosFiltrados.length > 0) {
+        <div class="pagination-controls">
+          <button
+            type="button"
+            class="pagination-button"
+            [disabled]="paginaActual === 1"
+            (click)="irAPagina(paginaActual - 1)"
+            aria-label="Ir a la página anterior"
+          >
+            Anterior
+          </button>
+
+          <span class="pagination-position" aria-live="polite">
+            Página {{ paginaActual }} de {{ totalPaginas }}
+          </span>
+
+          <button
+            type="button"
+            class="pagination-button"
+            [disabled]="paginaActual >= totalPaginas"
+            (click)="irAPagina(paginaActual + 1)"
+            aria-label="Ir a la página siguiente"
+          >
+            Siguiente
+          </button>
+        </div>
+      }
+    </nav>
   </section>
 </section>
 

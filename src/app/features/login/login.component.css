@@ -5,7 +5,9 @@
 
 .login-page {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+  /* La imagen tiene formato vertical 3:4. Ajustar el ancho del panel
+     a la altura de la ventana evita cortar logo, peaje y beneficios. */
+  grid-template-columns: minmax(0, min(45vw, 75dvh)) minmax(0, 1fr);
   min-height: 100vh;
   min-height: 100dvh;
   background: #f8fbff;
@@ -25,8 +27,9 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
+  /* Mostrar la composición completa en escritorio. */
+  object-fit: contain;
+  object-position: center center;
 }
 
 .form-panel {
@@ -215,7 +218,7 @@
 
 @media (max-width: 900px) {
   .login-page {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 43%) minmax(0, 57%);
   }
 
   .form-panel {
@@ -236,6 +239,8 @@
   }
 
   .visual-image {
+    /* En móvil se usa como cabecera para mantener el formulario visible. */
+    object-fit: cover;
     object-position: center 13%;
   }
 

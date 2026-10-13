@@ -121,9 +121,36 @@
         </p>
       </div>
 
-      @if (loading) {
-        <span class="loading-line">Consultando SIGO...</span>
-      }
+      <div class="history-refresh">
+        <div class="history-refresh-info" aria-live="polite">
+          <span
+            class="history-refresh-indicator"
+            [class.paused]="!autoActualizar || editing != null"
+          ></span>
+          <span>
+            @if (editing) {
+              Actualización pausada durante la edición
+            } @else if (autoActualizar) {
+              Actualización automática cada {{ intervaloActualizacionSegundos }} s
+            } @else {
+              Actualización automática pausada
+            }
+          </span>
+          @if (ultimaActualizacion) {
+            <small>Última actualización: {{ ultimaActualizacion }} (Lima)</small>
+          }
+          @if (loading || actualizandoEnSegundoPlano) {
+            <small>Consultando SIGO...</small>
+          }
+        </div>
+        <button
+          type="button"
+          class="refresh-toggle"
+          (click)="alternarActualizacionAutomatica()"
+        >
+          {{ autoActualizar ? 'Pausar' : 'Reanudar' }}
+        </button>
+      </div>
     </div>
 
     <div class="table-wrap">

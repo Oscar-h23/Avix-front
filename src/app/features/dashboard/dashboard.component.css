@@ -11,10 +11,11 @@
   position: relative;
   overflow: hidden;
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
+  flex-direction: column;
   justify-content: space-between;
-  gap: 24px;
-  padding: 24px;
+  gap: 22px;
+  padding: clamp(20px, 2vw, 30px);
   border: 1px solid #dbeafe;
   border-radius: 20px;
   background:
@@ -41,7 +42,7 @@
 }
 
 .hero-copy {
-  max-width: 580px;
+  max-width: 740px;
 }
 
 .hero-topline {
@@ -54,6 +55,7 @@
 
 .status-pill,
 .window-label,
+.plaza-scope,
 .top-label,
 .peak-chip {
   display: inline-flex;
@@ -93,6 +95,17 @@
   color: #1d4ed8;
 }
 
+.plaza-scope {
+  background: #e9f7f5;
+  color: #087569;
+}
+
+.plaza-scope svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
 .dashboard-hero h1 {
   margin: 0;
   color: #0b2342;
@@ -109,11 +122,109 @@
 }
 
 .hero-filters {
-  min-width: min(570px, 100%);
+  min-width: 0;
+  width: 100%;
   display: grid;
-  grid-template-columns: minmax(150px, .75fr) minmax(260px, 1.3fr) auto;
+  grid-template-columns: minmax(160px, .85fr) minmax(150px, .7fr) minmax(260px, 1.35fr) auto;
   align-items: end;
-  gap: 10px;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #dfebfc;
+  border-radius: 16px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 5px 18px rgba(15,23,42,.035);
+}
+
+.plaza-field,
+.date-field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.plaza-field label,
+.date-field label {
+  color: #475569;
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+.plaza-field select,
+.date-field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #ced9e7;
+  border-radius: 10px;
+  background: #fff;
+  color: #0b2342;
+  font-size: .85rem;
+  font-weight: 650;
+}
+
+.plaza-field select:focus-visible,
+.date-field input:focus-visible {
+  outline: 3px solid rgba(37,99,235,.2);
+  border-color: #2563eb;
+}
+
+.plaza-field select:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.dashboard-scope-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 11px 16px;
+  border: 1px solid #e2eaf4;
+  border-radius: 13px;
+  background: #fff;
+  color: #64748b;
+  font-size: .73rem;
+}
+
+.dashboard-scope-bar > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.dashboard-scope-bar strong {
+  color: #0b2342;
+  font-weight: 850;
+}
+
+.scope-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 0 4px #dbeafe;
+}
+
+.scope-divider {
+  color: #cbd5e1;
+}
+
+.scope-count {
+  font-weight: 750;
+  color: #2563eb;
+}
+
+.catalog-warning {
+  padding: 10px 14px;
+  border: 1px solid #fde68a;
+  border-radius: 11px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: .75rem;
 }
 
 .shift-control {
@@ -191,7 +302,7 @@
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -249,6 +360,11 @@
 .kpi-card.derivado .kpi-icon {
   background: #eff6ff;
   color: #1d4ed8;
+}
+
+.kpi-card.liberado .kpi-icon {
+  background: #ecfdf5;
+  color: #059669;
 }
 
 .kpi-copy {
@@ -412,6 +528,10 @@
   background: #2563eb;
 }
 
+.legend-dot.liberado {
+  background: #059669;
+}
+
 .legend-row b,
 .legend-row small {
   display: block;
@@ -489,6 +609,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.via-breakdown {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  column-gap: 16px;
+  row-gap: 4px;
 }
 
 .via-line b {
@@ -639,6 +766,11 @@
   color: #2563eb;
 }
 
+.hour-breakdown .liberado {
+  background: #ecfdf5;
+  color: #059669;
+}
+
 .recent-heading {
   align-items: center;
 }
@@ -739,6 +871,11 @@ tbody tr:hover {
   color: #dc2626;
 }
 
+.action-badge.liberado {
+  background: #ecfdf5;
+  color: #059669;
+}
+
 .worker-cell b,
 .worker-cell small {
   display: block;
@@ -801,7 +938,11 @@ tbody tr:hover {
   }
 
   .hero-filters {
-    grid-template-columns: 1fr 1.35fr auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .refresh-button {
+    min-height: 42px;
   }
 }
 
@@ -812,6 +953,12 @@ tbody tr:hover {
 
   .hero-filters {
     grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .dashboard-scope-bar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .kpi-grid {
@@ -828,7 +975,7 @@ tbody tr:hover {
   }
 
   .hour-grid {
-    grid-template-columns: repeat(8, 76px);
+    grid-template-columns: repeat(8, 82px);
   }
 
   .recent-heading,

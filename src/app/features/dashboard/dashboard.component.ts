@@ -224,6 +224,16 @@ export class DashboardComponent implements OnInit {
   cargar(): void {
     // La última selección de fecha/turno es la única que debe actualizar la pantalla.
     this.registrosRequest?.unsubscribe();
+
+    if (this.esMes && !/^\d{4}-(0[1-9]|1[0-2])$/.test(this.mes)) {
+      this.loading = false;
+      this.error = 'Selecciona un mes válido para consultar el dashboard.';
+      this.registros = [];
+      this.recalcular();
+      this.cdr.markForCheck();
+      return;
+    }
+
     // El mes se solicita como una única ventana completa y se filtra
     // el turno localmente; un rango continuo A/B/C incluiría otros turnos.
     const ventana = this.esMes

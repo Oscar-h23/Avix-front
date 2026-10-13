@@ -36,6 +36,9 @@ export class HistorialComponent implements OnInit {
   via = '';
   buscarPlaca = '';
 
+  readonly registrosPorPagina = 20;
+  paginaActual = 1;
+
   registros: AviRegistro[] = [];
   loading = false;
   error = '';
@@ -113,12 +116,45 @@ export class HistorialComponent implements OnInit {
     return this.filtroResultado;
   }
 
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.registrosFiltrados.length / this.registrosPorPagina));
+  }
+
+  get registrosPaginados(): AviRegistro[] {
+    const inicio = (this.paginaActual - 1) * this.registrosPorPagina;
+    return this.registrosFiltrados.slice(inicio, inicio + this.registrosPorPagina);
+  }
+
+  get primerRegistroPagina(): number {
+    return this.registrosFiltrados.length === 0
+      ? 0
+      : (this.paginaActual - 1) * this.registrosPorPagina + 1;
+  }
+
+  get ultimoRegistroPagina(): number {
+    return Math.min(this.paginaActual * this.registrosPorPagina, this.registrosFiltrados.length);
+  }
+
+  irAPagina(pagina: number): void {
+    if (!Number.isInteger(pagina)) return;
+    this.paginaActual = Math.max(1, Math.min(pagina, this.totalPaginas));
+  }
+
+  cambiarBusquedaPlaca(valor: string): void {
+    this.buscarPlaca = valor;
+    this.paginaActual = 1;
+  }
+
   cambiarTurno(): void {
     this.franja = null;
     this.cargar();
   }
 
-  cargar(): void {
+  cargar(reiniciarPagina = true): void {
+    if (reiniciarPagina) {
+      this.paginaActual = 1;
+    }
+
     const window = ventanaOperativa(
       this.fecha,
       this.turno,
@@ -170,6 +206,9 @@ export class HistorialComponent implements OnInit {
               new Date(b.fechaHoraEvento).getTime() -
               new Date(a.fechaHoraEvento).getTime()
           );
+          // Si cambian los resultados del servidor, conservar la página
+          // actual siempre que siga existiendo (también en el refresco de 10 s).
+          this.paginaActual = Math.min(this.paginaActual, this.totalPaginas);
           this.ultimaActualizacion = new Date().toLocaleTimeString('es-PE', {
             timeZone: 'America/Lima',
             hour: '2-digit',
@@ -257,7 +296,7 @@ export class HistorialComponent implements OnInit {
       next: () => {
         this.saving = false;
         this.editing = null;
-        this.cargar();
+        this.cargar(false);
         this.cdr.markForCheck();
       },
       error: (error) => {

@@ -188,6 +188,11 @@ tbody tr:hover {
   color: #dc2626;
 }
 
+.action-badge.liberado {
+  background: #ecfdf5;
+  color: #059669;
+}
+
 .edit-button {
   min-height: 31px;
   border: 1px solid #d7e0eb;
@@ -274,7 +279,7 @@ tbody tr:hover {
 
 .edit-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -290,6 +295,12 @@ tbody tr:hover {
   border-color: #2563eb;
   background: #eff6ff;
   color: #1d4ed8;
+}
+
+.edit-actions button.liberado-active {
+  border-color: #059669;
+  background: #ecfdf5;
+  color: #047857;
 }
 
 .modal-actions {

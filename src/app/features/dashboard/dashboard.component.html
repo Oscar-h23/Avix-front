@@ -364,36 +364,58 @@
       }
     </div>
 
-    <div class="hour-grid" [class.all-turns]="turno === 'TODOS'">
-      @for (item of porHora; track item.label) {
-        <div
-          class="hour-column"
-          [class.empty-hour]="item.total === 0"
-        >
-          <div class="hour-value">
-            <strong>{{ item.total }}</strong>
-            <span>evento(s)</span>
-          </div>
+    <div class="hour-chart-meta">
+      <span class="hour-legend">
+        <span class="fuga">F = fugas</span>
+        <span class="derivado">D = derivados</span>
+        <span class="liberado">L = liberados</span>
+      </span>
+      <span class="hour-scroll-hint">
+        Desliza horizontalmente para ver todas las horas
+        <span aria-hidden="true">→</span>
+      </span>
+    </div>
 
-          <div class="hour-track">
-            <div
-              class="hour-fill"
-              [style.height.%]="item.width"
-            ></div>
-          </div>
+    <div
+      class="hour-chart-scroll"
+      role="region"
+      aria-label="Actividad por hora. Desplázate horizontalmente para consultar todas las franjas."
+      tabindex="0"
+    >
+      <div class="hour-grid" [class.all-turns]="turno === 'TODOS'" role="list">
+        @for (item of porHora; track item.label; let index = $index) {
+          <div
+            class="hour-column"
+            role="listitem"
+            [class.empty-hour]="item.total === 0"
+            [class.shift-divider]="turno === 'TODOS' && (index === 8 || index === 16)"
+            [attr.title]="item.label + ': ' + item.total + ' eventos, ' + item.fugas + ' fugas, ' + item.derivados + ' derivados y ' + item.liberados + ' liberados'"
+          >
+            <div class="hour-value">
+              <strong>{{ item.total }}</strong>
+              <span>evento(s)</span>
+            </div>
 
-          <div class="hour-label">
-            <b>{{ item.label.split(' – ')[0] }}</b>
-            <small>{{ item.label.split(' – ')[1] }}</small>
-          </div>
+            <div class="hour-track">
+              <div
+                class="hour-fill"
+                [style.height.%]="item.width"
+              ></div>
+            </div>
 
-          <div class="hour-breakdown">
-            <span class="fuga">{{ item.fugas }}F</span>
-            <span class="derivado">{{ item.derivados }}D</span>
-            <span class="liberado">{{ item.liberados }}L</span>
+            <div class="hour-label">
+              <b>{{ item.label.split(' – ')[0] }}</b>
+              <small>{{ item.label.split(' – ')[1] }}</small>
+            </div>
+
+            <div class="hour-breakdown">
+              <span class="fuga">{{ item.fugas }}F</span>
+              <span class="derivado">{{ item.derivados }}D</span>
+              <span class="liberado">{{ item.liberados }}L</span>
+            </div>
           </div>
-        </div>
-      }
+        }
+      </div>
     </div>
   </article>
 

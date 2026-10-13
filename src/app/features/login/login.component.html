@@ -1,72 +1,69 @@
 <main class="login-page">
-  <section class="visual-panel">
-    <div class="visual-content">
-      <div class="brand-row">
-        <img src="avix-logo.svg" alt="AVIX">
-        <div>
-          <strong>AVIX</strong>
-          <span>Control operativo inteligente</span>
-        </div>
-      </div>
-
-      <div class="hero-copy">
-        <span class="eyebrow">SIGO · Operaciones</span>
-        <h1>Visibilidad inmediata de fugas y derivados.</h1>
-        <p>
-          Consulta el comportamiento operativo por turno, vía, hora y placa
-          desde un único panel.
-        </p>
-      </div>
-
-      <div class="shift-strip">
-        <div><b>A</b><span>06–14</span></div>
-        <div><b>B</b><span>14–22</span></div>
-        <div><b>C</b><span>22–06</span></div>
-      </div>
-    </div>
+  <section class="visual-panel" aria-label="AVIX: registro de incidencias en tiempo real">
+    <img
+      class="visual-image"
+      src="avix-login-panel.avif"
+      alt="AVIX, registro de incidencias en tiempo real. Vista de peaje Lima Expresa con los beneficios de registro por voz, información confiable y monitoreo en tiempo real."
+      fetchpriority="high"
+    >
   </section>
 
   <section class="form-panel">
-    <form class="login-card" (ngSubmit)="ingresar()">
-      <div class="mobile-brand">
-        <img src="avix-logo.svg" alt="AVIX">
-        <strong>AVIX</strong>
-      </div>
+    <span class="version-label">v1.0.0</span>
 
-      <span class="form-kicker">Acceso operativo</span>
-      <h2>Iniciar sesión</h2>
+    <form class="login-card" (ngSubmit)="ingresar()">
+      <span class="form-kicker">ACCESO OPERATIVO</span>
+      <h1>Iniciar sesión</h1>
       <p class="form-description">
-        Ingresa tu código de trabajador para acceder al dashboard AVIX.
+        Ingresa tu código de usuario para continuar.
       </p>
 
       <div class="field">
-        <label for="codigo">Código de trabajador</label>
-        <input
-          id="codigo"
-          name="codigo"
-          [(ngModel)]="codigo"
-          inputmode="numeric"
-          autocomplete="username"
-          placeholder="Ej. 2396"
-          [disabled]="loading"
-        >
+        <label for="codigo">Código de usuario</label>
+        <div class="input-group">
+          <svg class="input-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="7.5" r="3.7"></circle>
+            <path d="M5 20v-1.5a7 7 0 0 1 14 0V20H5Z"></path>
+          </svg>
+          <input
+            id="codigo"
+            name="codigo"
+            [(ngModel)]="codigo"
+            type="text"
+            inputmode="numeric"
+            autocomplete="username"
+            placeholder="Ingresa tu código"
+            [disabled]="loading"
+          >
+        </div>
       </div>
 
       @if (error) {
-        <div class="error-box">{{ error }}</div>
+        <div class="error-box" role="alert">{{ error }}</div>
       }
 
-      <button
-        type="submit"
-        class="login-button"
-        [disabled]="loading"
-      >
-        {{ loading ? 'Validando...' : 'Ingresar a AVIX' }}
+      <button type="submit" class="login-button" [disabled]="loading">
+        <span>{{ loading ? 'Validando...' : 'Ingresar' }}</span>
+        @if (!loading) {
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12h16m-6-6 6 6-6 6"></path>
+          </svg>
+        }
       </button>
 
-      <small>
-        La sesión se valida con SIGO-BACK.
-      </small>
+      <div class="security-note">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 2 8 4v6c0 5-3.5 8.6-8 10-4.5-1.4-8-5-8-10V6l8-4Z"></path>
+          <path d="m8.8 12 2.2 2.2 4.6-4.6"></path>
+        </svg>
+        <div>
+          <strong>Acceso seguro a AVIX</strong>
+          <span>Registro y monitoreo operativo</span>
+        </div>
+      </div>
     </form>
   </section>
 </main>

@@ -10,9 +10,12 @@ import { AviApiService } from '../../core/services/avi-api.service';
 import {
   contextoOperativoActual,
   dateTimeLabelFromIso,
-  franjasPorTurno,
+  diasDelMes,
+  franjasDashboard,
+  perteneceATurno,
   TurnoFiltro,
   TURNOS,
+  ventanaMensualOperativa,
   ventanaOperativa
 } from '../../core/utils/turnos';
 
@@ -42,9 +45,10 @@ interface ViaItem {
   styleUrl: './dashboard.component.css'
 })
 export class DashboardComponent implements OnInit {
-  readonly turnos = TURNOS.filter((item) => item.value !== 'TODOS');
-
+  readonly turnos = TURNOS;
+  periodo: 'DIA' | 'MES' = 'DIA';
   fecha = contextoOperativoActual().fecha;
+  mes = this.fecha.slice(0, 7);
   turno: TurnoFiltro = contextoOperativoActual().turno;
 
   // El filtro utiliza plazaId, disponible en la API de registros.
@@ -66,6 +70,8 @@ export class DashboardComponent implements OnInit {
   liberados = 0;
   placasUnicas = 0;
   operadoresActivos = 0;
+  readonly turnosOperativos = ['A', 'B', 'C'] as const;
+  resumenTurnos: Record<'A' | 'B' | 'C', number> = { A: 0, B: 0, C: 0 };
 
   porcentajeFugas = 0;
   porcentajeDerivados = 0;
@@ -166,7 +172,31 @@ export class DashboardComponent implements OnInit {
 
   get esTurnoActual(): boolean {
     const actual = contextoOperativoActual();
-    return actual.fecha === this.fecha && actual.turno === this.turno;
+    if (this.periodo === 'MES') return this.mes === actual.fecha.slice(0, 7);
+    return actual.fecha === this.fecha &&
+      (this.turno === 'TODOS' || actual.turno === this.turno);
+  }
+
+  get estadoPeriodo(): string {
+    if (!this.esTurnoActual) return 'Consulta histórica';
+    if (this.periodo === 'MES') return 'Mes en curso';
+    return this.turno === 'TODOS' ? 'Jornada en curso' : 'Turno en curso';
+  }
+
+  get esMes(): boolean {
+    return this.periodo === 'MES';
+  }
+
+  seleccionarPeriodo(periodo: 'DIA' | 'MES'): void {
+    if (this.periodo === periodo) return;
+    this.periodo = periodo;
+    if (periodo === 'MES') this.mes = this.fecha.slice(0, 7);
+    this.cargar();
+  }
+
+  get horasDelPeriodo(): number {
+    const dias = this.periodo === 'MES' ? diasDelMes(this.mes) : 1;
+    return dias * (this.turno === 'TODOS' ? 24 : 8);
   }
 
   get donutBackground(): string {
@@ -183,7 +213,7 @@ export class DashboardComponent implements OnInit {
   }
 
   seleccionarTurno(turno: TurnoFiltro): void {
-    if (this.turno === turno || turno === 'TODOS') {
+    if (this.turno === turno) {
       return;
     }
 
@@ -194,7 +224,11 @@ export class DashboardComponent implements OnInit {
   cargar(): void {
     // La última selección de fecha/turno es la única que debe actualizar la pantalla.
     this.registrosRequest?.unsubscribe();
-    const ventana = ventanaOperativa(this.fecha, this.turno);
+    // El mes se solicita como una única ventana completa y se filtra
+    // el turno localmente; un rango continuo A/B/C incluiría otros turnos.
+    const ventana = this.esMes
+      ? ventanaMensualOperativa(this.mes)
+      : ventanaOperativa(this.fecha, this.turno);
     this.ventanaDescripcion = ventana.descripcion;
     this.loading = true;
     this.error = '';
@@ -206,7 +240,14 @@ export class DashboardComponent implements OnInit {
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (registros) => {
         this.loading = false;
-        this.registros = [...registros].sort(
+        // Cuando la consulta es mensual se agregan solamente las horas del
+        // turno indicado en Lima (C incluye 22–06 del día siguiente).
+        const seleccion = this.esMes && this.turno !== 'TODOS'
+          ? registros.filter((r) => perteneceATurno(
+              this.horaLima(r.fechaHoraEvento), this.turno
+            ))
+          : registros;
+        this.registros = [...seleccion].sort(
           (a, b) =>
             new Date(b.fechaHoraEvento).getTime() -
             new Date(a.fechaHoraEvento).getTime()
@@ -260,6 +301,15 @@ export class DashboardComponent implements OnInit {
       this.registros.map((item) => item.usuarioId)
     ).size;
 
+    const resumen = { A: 0, B: 0, C: 0 };
+    for (const item of this.registros) {
+      const hora = this.horaLima(item.fechaHoraEvento);
+      if (perteneceATurno(hora, 'A')) resumen.A++;
+      else if (perteneceATurno(hora, 'B')) resumen.B++;
+      else resumen.C++;
+    }
+    this.resumenTurnos = resumen;
+
     this.porcentajeFugas = this.total
       ? Math.round((this.fugas / this.total) * 100)
       : 0;
@@ -270,9 +320,9 @@ export class DashboardComponent implements OnInit {
       ? 100 - this.porcentajeFugas - this.porcentajeDerivados
       : 0;
 
-    const franjas = franjasPorTurno(this.turno);
-    this.promedioPorHora = franjas.length
-      ? Number((this.total / franjas.length).toFixed(1))
+    const franjas = franjasDashboard(this.turno);
+    this.promedioPorHora = this.horasDelPeriodo
+      ? Number((this.total / this.horasDelPeriodo).toFixed(1))
       : 0;
 
     const vias = new Map<

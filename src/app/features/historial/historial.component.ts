@@ -11,7 +11,6 @@ import {
 import { AviApiService } from '../../core/services/avi-api.service';
 import {
   contextoOperativoActual,
-  dateTimeLabelFromIso,
   FranjaHoraria,
   franjasPorTurno,
   TurnoFiltro,
@@ -240,10 +239,6 @@ export class HistorialComponent implements OnInit {
     this.via = '';
     this.buscarPlaca = '';
     this.cargar();
-  }
-
-  fechaEvento(iso: string): string {
-    return dateTimeLabelFromIso(iso);
   }
 
   abrirEdicion(item: AviRegistro): void {

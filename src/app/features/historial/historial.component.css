@@ -235,6 +235,66 @@ tbody tr:hover {
   letter-spacing: .06em;
 }
 
+.history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 18px;
+  border-top: 1px solid #edf1f6;
+  background: #fff;
+}
+
+.pagination-summary {
+  color: #64748b;
+  font-size: .72rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pagination-position {
+  min-width: 95px;
+  text-align: center;
+  color: #334155;
+  font-size: .72rem;
+  font-weight: 750;
+}
+
+.pagination-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #d7e0eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #1d4ed8;
+  font-size: .72rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pagination-button:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.pagination-button:disabled {
+  color: #94a3b8;
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+.pagination-button:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .2);
+  outline-offset: 2px;
+}
+
 .action-badge {
   display: inline-flex;
   padding: 4px 7px;
@@ -387,6 +447,22 @@ tbody tr:hover {
 }
 
 @media (max-width: 600px) {
+  .history-pagination {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
+    text-align: center;
+  }
+
+  .pagination-controls {
+    justify-content: space-between;
+    gap: 5px;
+  }
+
+  .pagination-button {
+    padding: 0 10px;
+  }
+
   .results-header {
     align-items: flex-start;
     flex-direction: column;

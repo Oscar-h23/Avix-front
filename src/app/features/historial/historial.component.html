@@ -158,13 +158,13 @@
       <table>
         <thead>
           <tr>
-            <th>Fecha / hora</th>
-            <th>Placa</th>
-            <th>Vía</th>
-            <th>Acción</th>
             <th>Plaza</th>
-            <th>Trabajador</th>
-            <th>Código</th>
+            <th>Vía</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Placa</th>
+            <th>Acción</th>
+            <th>Código de agente</th>
             <th></th>
           </tr>
         </thead>
@@ -172,9 +172,11 @@
         <tbody>
           @for (item of registrosPaginados; track item.id) {
             <tr>
-              <td>{{ fechaEvento(item.fechaHoraEvento) }}</td>
-              <td class="plate">{{ item.placa }}</td>
+              <td>{{ item.plazaCodigo }}</td>
               <td>Vía {{ item.via }}</td>
+              <td>{{ item.fechaHoraEvento | date:'dd/MM/yyyy':'-0500' }}</td>
+              <td>{{ item.fechaHoraEvento | date:'HH:mm:ss':'-0500' }}</td>
+              <td class="plate">{{ item.placa }}</td>
               <td>
                 <span
                   class="action-badge"
@@ -184,9 +186,7 @@
                   {{ item.accion }}
                 </span>
               </td>
-              <td>{{ item.plazaCodigo }}</td>
-              <td>{{ item.usuarioNombre }}</td>
-              <td>#{{ item.usuarioCodigo }}</td>
+              <td>{{ item.usuarioCodigo }}</td>
               <td>
                 <button
                   type="button"

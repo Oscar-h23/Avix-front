@@ -4,7 +4,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { AviRegistro } from '../../core/models/avi.models';
+import { AviPlazaConfig, AviRegistro } from '../../core/models/avi.models';
+import { AuthService } from '../../core/auth/auth.service';
 import { AviApiService } from '../../core/services/avi-api.service';
 import {
   contextoOperativoActual,
@@ -20,6 +21,7 @@ interface HourItem {
   total: number;
   fugas: number;
   derivados: number;
+  liberados: number;
   width: number;
 }
 
@@ -28,6 +30,7 @@ interface ViaItem {
   total: number;
   fugas: number;
   derivados: number;
+  liberados: number;
   width: number;
 }
 
@@ -44,6 +47,13 @@ export class DashboardComponent implements OnInit {
   fecha = contextoOperativoActual().fecha;
   turno: TurnoFiltro = contextoOperativoActual().turno;
 
+  // El filtro utiliza plazaId, disponible en la API de registros.
+  // El supervisor puede consultar todas; el resto conserva su plaza asignada.
+  plazasDisponibles: AviPlazaConfig[] = [];
+  plazaSeleccionada: number | null = null;
+  puedeFiltrarPlazas = false;
+  errorPlazas = '';
+
   registros: AviRegistro[] = [];
   loading = false;
   error = '';
@@ -53,11 +63,13 @@ export class DashboardComponent implements OnInit {
   total = 0;
   fugas = 0;
   derivados = 0;
+  liberados = 0;
   placasUnicas = 0;
   operadoresActivos = 0;
 
   porcentajeFugas = 0;
   porcentajeDerivados = 0;
+  porcentajeLiberados = 0;
   promedioPorHora = 0;
 
   viaLider = '—';
@@ -78,11 +90,78 @@ export class DashboardComponent implements OnInit {
 
   constructor(
     private readonly api: AviApiService,
+    private readonly auth: AuthService,
     private readonly cdr: ChangeDetectorRef
-  ) {}
+  ) {
+    const usuario = this.auth.usuario();
+    this.puedeFiltrarPlazas = usuario?.rol === 'SUPERVISOR';
+    this.plazaSeleccionada = this.puedeFiltrarPlazas
+      ? null
+      : (usuario?.plazaId ?? null);
+
+    if (usuario?.plazaId != null) {
+      this.plazasDisponibles = [{
+        id: usuario.plazaId,
+        codigo: usuario.plaza || `Plaza ${usuario.plazaId}`,
+        descripcion: null
+      }];
+    }
+  }
 
   ngOnInit(): void {
+    this.cargarPlazas();
     this.cargar();
+  }
+
+  get plazaActualLabel(): string {
+    if (this.plazaSeleccionada === null) {
+      return 'Todas las plazas';
+    }
+
+    return this.plazasDisponibles.find(
+      (item) => item.id === this.plazaSeleccionada
+    )?.codigo || `Plaza ${this.plazaSeleccionada}`;
+  }
+
+  seleccionarPlaza(plazaId: number | null): void {
+    if (!this.puedeFiltrarPlazas || this.plazaSeleccionada === plazaId) {
+      return;
+    }
+
+    this.plazaSeleccionada = plazaId;
+    this.cargar();
+  }
+
+  private cargarPlazas(): void {
+    // El catálogo administrativo solo está autorizado para supervisores.
+    if (!this.puedeFiltrarPlazas) return;
+
+    this.api.listarPlazasConfiguracion()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (plazas) => {
+          this.incorporarPlazas(plazas);
+          this.errorPlazas = '';
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          // Si falla el catálogo, permitir las plazas presentes en los
+          // registros autorizados sin bloquear el dashboard.
+          this.errorPlazas = 'Catálogo de plazas no disponible; se muestran las plazas detectadas.';
+          this.cdr.markForCheck();
+        }
+      });
+  }
+
+  private incorporarPlazas(plazas: AviPlazaConfig[]): void {
+    const mapa = new Map(this.plazasDisponibles.map((plaza) => [plaza.id, plaza]));
+    for (const plaza of plazas) {
+      mapa.set(plaza.id, plaza);
+    }
+
+    this.plazasDisponibles = [...mapa.values()].sort(
+      (a, b) => a.id - b.id
+    );
   }
 
   get esTurnoActual(): boolean {
@@ -95,9 +174,11 @@ export class DashboardComponent implements OnInit {
       return 'conic-gradient(#e2e8f0 0 100%)';
     }
 
+    const finDerivados = this.porcentajeFugas + this.porcentajeDerivados;
     return `conic-gradient(
       #dc2626 0 ${this.porcentajeFugas}%,
-      #2563eb ${this.porcentajeFugas}% 100%
+      #2563eb ${this.porcentajeFugas}% ${finDerivados}%,
+      #059669 ${finDerivados}% 100%
     )`;
   }
 
@@ -120,7 +201,8 @@ export class DashboardComponent implements OnInit {
 
     this.registrosRequest = this.api.listarRegistros({
       desde: ventana.desde,
-      hasta: ventana.hasta
+      hasta: ventana.hasta,
+      plazaId: this.plazaSeleccionada ?? undefined
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (registros) => {
         this.loading = false;
@@ -129,6 +211,13 @@ export class DashboardComponent implements OnInit {
             new Date(b.fechaHoraEvento).getTime() -
             new Date(a.fechaHoraEvento).getTime()
         );
+        if (this.puedeFiltrarPlazas) {
+          this.incorporarPlazas(registros.map((r) => ({
+            id: r.plazaId,
+            codigo: r.plazaCodigo,
+            descripcion: null
+          })).filter((p) => p.id != null));
+        }
         this.recalcular();
         this.ultimaActualizacion = new Intl.DateTimeFormat('es-PE', {
           timeZone: 'America/Lima',
@@ -143,7 +232,7 @@ export class DashboardComponent implements OnInit {
         this.loading = false;
         this.error =
           error?.error?.message ??
-          'No se pudo cargar el dashboard desde SIGO.';
+          'No se pudo cargar el dashboard de AVIX.';
         this.cdr.markForCheck();
       }
     });
@@ -161,6 +250,9 @@ export class DashboardComponent implements OnInit {
     this.derivados = this.registros.filter(
       (item) => item.accion === 'DERIVADO'
     ).length;
+    this.liberados = this.registros.filter(
+      (item) => item.accion === 'LIBERADO'
+    ).length;
     this.placasUnicas = new Set(
       this.registros.map((item) => item.placa)
     ).size;
@@ -172,7 +264,10 @@ export class DashboardComponent implements OnInit {
       ? Math.round((this.fugas / this.total) * 100)
       : 0;
     this.porcentajeDerivados = this.total
-      ? 100 - this.porcentajeFugas
+      ? Math.round((this.derivados / this.total) * 100)
+      : 0;
+    this.porcentajeLiberados = this.total
+      ? 100 - this.porcentajeFugas - this.porcentajeDerivados
       : 0;
 
     const franjas = franjasPorTurno(this.turno);
@@ -182,22 +277,25 @@ export class DashboardComponent implements OnInit {
 
     const vias = new Map<
       number,
-      { total: number; fugas: number; derivados: number }
+      { total: number; fugas: number; derivados: number; liberados: number }
     >();
 
     for (const item of this.registros) {
       const actual = vias.get(item.via) ?? {
         total: 0,
         fugas: 0,
-        derivados: 0
+        derivados: 0,
+        liberados: 0
       };
 
       actual.total++;
 
       if (item.accion === 'FUGA') {
         actual.fugas++;
-      } else {
+      } else if (item.accion === 'DERIVADO') {
         actual.derivados++;
+      } else if (item.accion === 'LIBERADO') {
+        actual.liberados++;
       }
 
       vias.set(item.via, actual);
@@ -216,6 +314,7 @@ export class DashboardComponent implements OnInit {
       total: data.total,
       fugas: data.fugas,
       derivados: data.derivados,
+      liberados: data.liberados,
       width: Math.max(5, (data.total / maxVia) * 100)
     }));
 
@@ -225,7 +324,7 @@ export class DashboardComponent implements OnInit {
 
     const byHour = new Map<
       number,
-      { total: number; fugas: number; derivados: number }
+      { total: number; fugas: number; derivados: number; liberados: number }
     >();
 
     for (const item of this.registros) {
@@ -233,15 +332,18 @@ export class DashboardComponent implements OnInit {
       const actual = byHour.get(hour) ?? {
         total: 0,
         fugas: 0,
-        derivados: 0
+        derivados: 0,
+        liberados: 0
       };
 
       actual.total++;
 
       if (item.accion === 'FUGA') {
         actual.fugas++;
-      } else {
+      } else if (item.accion === 'DERIVADO') {
         actual.derivados++;
+      } else if (item.accion === 'LIBERADO') {
+        actual.liberados++;
       }
 
       byHour.set(hour, actual);
@@ -252,14 +354,16 @@ export class DashboardComponent implements OnInit {
       const data = byHour.get(hour) ?? {
         total: 0,
         fugas: 0,
-        derivados: 0
+        derivados: 0,
+        liberados: 0
       };
 
       return {
         label: franja.label,
         total: data.total,
         fugas: data.fugas,
-        derivados: data.derivados
+        derivados: data.derivados,
+        liberados: data.liberados
       };
     });
 
